@@ -1,26 +1,265 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------------------
+   "The Artisanal Crumb" — design tokens
+   --------------------------------------------------------------------------- */
+@theme {
+  /* Color: cocoa, cream, toasted sugar.
+     "No-Line" rule: separation comes from these tonal shifts, never 1px borders. */
+  --color-surface: #fdf8f5;            /* the tablecloth */
+  --color-surface-bright: #fdf8f5;
+  --color-surface-dim: #ded9d6;
+  --color-surface-container-lowest: #ffffff;  /* card pop */
+  --color-surface-container-low: #f8f3f0;
+  --color-surface-container: #f2edea;
+  --color-surface-container-high: #ece7e4;
+  --color-surface-container-highest: #e6e2df;
+
+  --color-primary: #77553d;            /* rich chocolate */
+  --color-primary-container: #926d54;
+  --color-primary-fixed: #ffdcc6;
+  --color-primary-fixed-dim: #eabda0;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #fffcff;
+  --color-on-primary-fixed: #2d1604;
+  --color-on-primary-fixed-variant: #5f402a;
+
+  --color-secondary: #735a3e;          /* toasted sugar */
+  --color-secondary-container: #fdd9b7;
+  --color-secondary-fixed: #ffddbb;
+  --color-secondary-fixed-dim: #e3c19f;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #785e42;
+  --color-on-secondary-fixed: #291803;
+  --color-on-secondary-fixed-variant: #5a4229;
+
+  --color-tertiary: #615c4e;           /* warm low-contrast body text */
+  --color-tertiary-container: #7b7466;
+  --color-tertiary-fixed: #ebe2d0;
+  --color-tertiary-fixed-dim: #cec6b5;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-fixed: #1f1b11;
+
+  --color-on-surface: #1c1b1a;         /* never use #000 */
+  --color-on-surface-variant: #504441;
+  --color-outline: #827470;
+  --color-outline-variant: #d4c3be;    /* "ghost border" base */
+
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #93000a;
+
+  --color-inverse-surface: #32302e;
+  --color-inverse-on-surface: #f5f0ed;
+  --color-inverse-primary: #eabda0;
+
+  /* Fonts — wired up via next/font in src/app/layout.tsx */
+  --font-display: var(--font-epilogue), ui-sans-serif, system-ui, sans-serif;
+  --font-headline: var(--font-epilogue), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-label: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+
+  /* Type scale (per design doc) */
+  --text-display-lg: 3.5rem;
+  --text-display-lg--line-height: 1.05;
+  --text-display-lg--letter-spacing: -0.02em;
+
+  --text-title-lg: 1.375rem;
+  --text-title-lg--line-height: 1.3;
+
+  --text-body-lg: 1rem;
+  --text-body-lg--line-height: 1.6;
+
+  --text-label-md: 0.75rem;
+  --text-label-md--line-height: 1.4;
+  --text-label-md--letter-spacing: 0.06em;
+
+  /* Spacing emphasis — sections breathe at 12 (4rem) to 16 (5.5rem). */
+  --spacing-section: 5.5rem;
+
+  /* Shadows — "Chocolate Shadow", ultra-diffused. */
+  --shadow-chocolate: 0 20px 40px rgba(28, 27, 26, 0.05);
+  --shadow-chocolate-lg: 0 30px 60px rgba(28, 27, 26, 0.08);
+
+  /* Easing — soft, cozy. Never snappy. */
+  --ease-cozy: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+   --------------------------------------------------------------------------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* Element-level base styles MUST live inside @layer base — otherwise they
+   land in the unlayered "default" cascade, which trumps Tailwind utilities
+   regardless of specificity. (e.g. without this, `text-on-primary` on an
+   <h2> would lose to the global `h2 { color: ... }` rule.) */
+@layer base {
+  html {
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  body {
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+    font-family: var(--font-body);
+    font-size: var(--text-body-lg);
+    line-height: var(--text-body-lg--line-height);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Default headlines to Epilogue, never pure black. */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-headline);
+    color: var(--color-primary);
+    letter-spacing: -0.01em;
+  }
+
+  /* Selection in toasted sugar */
+  ::selection {
+    background: var(--color-secondary-container);
+    color: var(--color-on-secondary-container);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ---------------------------------------------------------------------------
+   Signature utilities
+   --------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+   Scalloped Bite — multiple overlapping circular arcs cut out of one corner
+   to look like a real cookie bite (multiple teeth marks, not one perfect
+   circle).
+
+   Each variant uses 3-4 radial-gradients composed via mask-composite:
+   intersect, so each circle punches its own hole. Circle sizes vary so the
+   bite edge looks ragged — the way teeth would actually leave a bite.
+
+   Variants (tuned to feel different across a row of cards):
+     scalloped-bite     top-right    — default, 4 arcs, biggest bite
+     scalloped-bite-tr  top-right    — alias of the default
+     scalloped-bite-tl  top-left     — 3 arcs, smaller, slimmer feel
+     scalloped-bite-br  bottom-right — 4 arcs, moderate
+     scalloped-bite-bl  bottom-left  — 3 arcs, deeper
+
+   For buttons / small surfaces use scalloped-bite-sm — two arcs that read
+   as a single tooth-shaped nibble.
+   --------------------------------------------------------------------------- */
+
+@utility scalloped-bite {
+  -webkit-mask-image:
+    radial-gradient(circle 26px at calc(100% - 4px) 4px,  transparent 26px, black 26.5px),
+    radial-gradient(circle 22px at calc(100% - 28px) 14px, transparent 22px, black 22.5px),
+    radial-gradient(circle 18px at calc(100% - 14px) 34px, transparent 18px, black 18.5px),
+    radial-gradient(circle 12px at calc(100% - 38px) 30px, transparent 12px, black 12.5px);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    radial-gradient(circle 26px at calc(100% - 4px) 4px,  transparent 26px, black 26.5px),
+    radial-gradient(circle 22px at calc(100% - 28px) 14px, transparent 22px, black 22.5px),
+    radial-gradient(circle 18px at calc(100% - 14px) 34px, transparent 18px, black 18.5px),
+    radial-gradient(circle 12px at calc(100% - 38px) 30px, transparent 12px, black 12.5px);
+  mask-composite: intersect;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
+
+@utility scalloped-bite-tr {
+  -webkit-mask-image:
+    radial-gradient(circle 26px at calc(100% - 4px) 4px,  transparent 26px, black 26.5px),
+    radial-gradient(circle 22px at calc(100% - 28px) 14px, transparent 22px, black 22.5px),
+    radial-gradient(circle 18px at calc(100% - 14px) 34px, transparent 18px, black 18.5px),
+    radial-gradient(circle 12px at calc(100% - 38px) 30px, transparent 12px, black 12.5px);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    radial-gradient(circle 26px at calc(100% - 4px) 4px,  transparent 26px, black 26.5px),
+    radial-gradient(circle 22px at calc(100% - 28px) 14px, transparent 22px, black 22.5px),
+    radial-gradient(circle 18px at calc(100% - 14px) 34px, transparent 18px, black 18.5px),
+    radial-gradient(circle 12px at calc(100% - 38px) 30px, transparent 12px, black 12.5px);
+  mask-composite: intersect;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+@utility scalloped-bite-tl {
+  -webkit-mask-image:
+    radial-gradient(circle 22px at 4px 4px,   transparent 22px, black 22.5px),
+    radial-gradient(circle 18px at 24px 18px, transparent 18px, black 18.5px),
+    radial-gradient(circle 14px at 6px 28px,  transparent 14px, black 14.5px);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    radial-gradient(circle 22px at 4px 4px,   transparent 22px, black 22.5px),
+    radial-gradient(circle 18px at 24px 18px, transparent 18px, black 18.5px),
+    radial-gradient(circle 14px at 6px 28px,  transparent 14px, black 14.5px);
+  mask-composite: intersect;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+@utility scalloped-bite-br {
+  -webkit-mask-image:
+    radial-gradient(circle 24px at calc(100% - 4px)  calc(100% - 6px),  transparent 24px, black 24.5px),
+    radial-gradient(circle 20px at calc(100% - 26px) calc(100% - 16px), transparent 20px, black 20.5px),
+    radial-gradient(circle 16px at calc(100% - 12px) calc(100% - 32px), transparent 16px, black 16.5px),
+    radial-gradient(circle 12px at calc(100% - 36px) calc(100% - 28px), transparent 12px, black 12.5px);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    radial-gradient(circle 24px at calc(100% - 4px)  calc(100% - 6px),  transparent 24px, black 24.5px),
+    radial-gradient(circle 20px at calc(100% - 26px) calc(100% - 16px), transparent 20px, black 20.5px),
+    radial-gradient(circle 16px at calc(100% - 12px) calc(100% - 32px), transparent 16px, black 16.5px),
+    radial-gradient(circle 12px at calc(100% - 36px) calc(100% - 28px), transparent 12px, black 12.5px);
+  mask-composite: intersect;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+@utility scalloped-bite-bl {
+  -webkit-mask-image:
+    radial-gradient(circle 26px at 4px  calc(100% - 4px),  transparent 26px, black 26.5px),
+    radial-gradient(circle 20px at 26px calc(100% - 16px), transparent 20px, black 20.5px),
+    radial-gradient(circle 14px at 8px  calc(100% - 32px), transparent 14px, black 14.5px);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    radial-gradient(circle 26px at 4px  calc(100% - 4px),  transparent 26px, black 26.5px),
+    radial-gradient(circle 20px at 26px calc(100% - 16px), transparent 20px, black 20.5px),
+    radial-gradient(circle 14px at 8px  calc(100% - 32px), transparent 14px, black 14.5px);
+  mask-composite: intersect;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* Small bite for buttons / chips — two overlapping arcs that read as a
+   single tooth nibble without eating the whole corner of a wide button. */
+@utility scalloped-bite-sm {
+  -webkit-mask-image:
+    radial-gradient(circle 13px at calc(100% - 2px) 0px, transparent 13px, black 13.5px),
+    radial-gradient(circle 8px  at calc(100% - 16px) 5px, transparent 8px,  black 8.5px);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    radial-gradient(circle 13px at calc(100% - 2px) 0px, transparent 13px, black 13.5px),
+    radial-gradient(circle 8px  at calc(100% - 16px) 5px, transparent 8px,  black 8.5px);
+  mask-composite: intersect;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* Glass nav — surface at 85% with backdrop blur. */
+@utility glass-nav {
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+  backdrop-filter: blur(20px) saturate(110%);
+  -webkit-backdrop-filter: blur(20px) saturate(110%);
+}
+
+/* Ghost border — 15% outline-variant for accessibility-only boundaries. */
+@utility ghost-border {
+  border: 1px solid color-mix(in srgb, var(--color-outline-variant) 15%, transparent);
+}
+
+/* Ingredient chip — hand-dropped with slight rotation. */
+@utility chip-tilt-left  { transform: rotate(-2deg); }
+@utility chip-tilt-right { transform: rotate(2deg); }

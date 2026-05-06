@@ -1,0 +1,36 @@
+# Local-only Postgres for tes_treats dev. In production we point at DO Managed
+# Postgres via DATABASE_URL — this file is never deployed.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: tes_treats_pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tes
+      POSTGRES_PASSWORD: tes
+      POSTGRES_DB: tes_treats
+    ports:
+      - "5432:5432"
+    volumes:
+      - tes_treats_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tes -d tes_treats"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Local-only SMTP catcher. Catches all outbound email so we can preview
+  # transactional templates without sending real mail. Web UI: http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: tes_treats_mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+
+volumes:
+  tes_treats_pg_data:

@@ -1,0 +1,111 @@
+# DigitalOcean App Platform spec. Apply with:
+#   doctl apps create --spec .do/app.yaml
+#   doctl apps update <APP_ID> --spec .do/app.yaml
+#
+# Deployment shape:
+#   - One web service (the Next.js app, built from this repo)
+#   - One managed Postgres database (the cheapest dev tier)
+#   - All secrets injected via env vars (set with `doctl apps update` or in the
+#     dashboard — never commit them)
+#
+# Cost note: managed Postgres dev tier is ~$15/mo on top of the basic-xxs web
+# service (~$5/mo). If a client can't justify $20/mo, deploy via
+# docker-compose.prod.yml on a $5 Hetzner/Linode/DO Droplet instead — same image.
+
+name: tes-treats
+region: nyc
+
+services:
+  - name: web
+    github:
+      repo: <YOUR_GITHUB_USER>/tes_treats
+      branch: main
+      deploy_on_push: true
+    dockerfile_path: Dockerfile
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    health_check:
+      http_path: /
+    routes:
+      - path: /
+    envs:
+      - key: NODE_ENV
+        scope: RUN_TIME
+        value: production
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
+      - key: AUTH_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: REPLACE_ME
+      - key: AUTH_URL
+        scope: RUN_TIME
+        value: ${APP_URL}
+      - key: AUTH_GOOGLE_ID
+        scope: RUN_TIME
+        type: SECRET
+        value: ""
+      - key: AUTH_GOOGLE_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: ""
+      - key: ADMIN_EMAILS
+        scope: RUN_TIME
+        value: tess@tes-treats.com
+      - key: SMTP_HOST
+        scope: RUN_TIME
+        value: smtp.resend.com
+      - key: SMTP_PORT
+        scope: RUN_TIME
+        value: "587"
+      - key: SMTP_USER
+        scope: RUN_TIME
+        value: resend
+      - key: SMTP_PASS
+        scope: RUN_TIME
+        type: SECRET
+        value: ""
+      - key: EMAIL_FROM
+        scope: RUN_TIME
+        value: TES Treats <hi@tes-treats.com>
+      - key: STRIPE_SECRET_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: ""
+      - key: STRIPE_PUBLISHABLE_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: ""
+      - key: STRIPE_WEBHOOK_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: ""
+      - key: SPACES_REGION
+        scope: RUN_TIME
+        value: nyc3
+      - key: SPACES_ENDPOINT
+        scope: RUN_TIME
+        value: https://nyc3.digitaloceanspaces.com
+      - key: SPACES_BUCKET
+        scope: RUN_TIME
+        value: tes-treats-uploads
+      - key: SPACES_ACCESS_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: ""
+      - key: SPACES_SECRET_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: ""
+      - key: SPACES_PUBLIC_BASE
+        scope: RUN_TIME
+        value: https://tes-treats-uploads.nyc3.cdn.digitaloceanspaces.com
+
+databases:
+  - name: db
+    engine: PG
+    version: "17"
+    production: false # dev tier; bump to true when you're ready for HA + backups
+    cluster_name: tes-treats-db

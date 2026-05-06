@@ -1,0 +1,58 @@
+# Single-VPS production deployment. Run on any $5/mo Linux VPS with Docker.
+# Brings up: Caddy reverse proxy (auto-HTTPS via Let's Encrypt) → Next.js app
+# → Postgres. No managed services required.
+#
+#   1. Copy .env.example → .env on the VPS, fill in real values.
+#   2. Point your domain's A record at the VPS public IP.
+#   3. Edit Caddyfile below to use that domain.
+#   4. docker compose -f docker-compose.prod.yml up -d
+#
+# Postgres data persists in the named volume `tes_pg_data`. Caddy stores
+# certificates in `caddy_data` so they survive container restarts.
+
+services:
+  app:
+    build: .
+    image: tes-treats:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-tes}:${POSTGRES_PASSWORD:?set in .env}@postgres:5432/${POSTGRES_DB:-tes_treats}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "3000"
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tes}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-tes_treats}
+    volumes:
+      - tes_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tes} -d ${POSTGRES_DB:-tes_treats}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  tes_pg_data:
+  caddy_data:
+  caddy_config:

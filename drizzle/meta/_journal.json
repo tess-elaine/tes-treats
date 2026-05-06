@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1777390443415,
+      "tag": "0000_wild_jasper_sitwell",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777393161053,
+      "tag": "0001_premium_junta",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777393497793,
+      "tag": "0002_sudden_the_watchers",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1777402994185,
+      "tag": "0003_bouncy_marvel_apes",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777407000000,
+      "tag": "0004_categories_and_images",
+      "breakpoints": true
+    }
+  ]
+}

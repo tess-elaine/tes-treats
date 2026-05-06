@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(claude mcp:*)",
-      "mcp__stitch__list_design_systems",
-      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --turbopack --yes)"
-    ]
-  }
-}

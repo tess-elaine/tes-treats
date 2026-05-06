@@ -1,0 +1,20 @@
+.git
+.gitignore
+.github
+.vscode
+.idea
+.claude
+.next
+node_modules
+npm-debug.log
+.env*.local
+.env*
+# never bake secrets into images
+*.pem
+public/uploads
+README.md
+DEPLOY.md
+docker-compose*.yml
+Dockerfile.dev
+*.log
+.dockerignore

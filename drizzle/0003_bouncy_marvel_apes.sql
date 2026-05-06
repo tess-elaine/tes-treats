@@ -1,0 +1,1 @@
+ALTER TABLE "drop" ADD COLUMN "announcement_sent_at" timestamp with time zone;
