@@ -80,15 +80,18 @@ export const orderItems = pgTable("order_item", {
     .references(() => orders.id, { onDelete: "cascade" }),
 
   // Exactly one of these three references should be set per row.
+  // ON DELETE SET NULL — order line items keep their snapshot fields
+  // (nameSnapshot, priceCents, etc.) so historical orders survive when
+  // the underlying product / variant / drop is later removed.
   productVariantId: uuid("product_variant_id").references(
     () => productVariants.id,
-    { onDelete: "restrict" },
+    { onDelete: "set null" },
   ),
   // Whole assorted box from a drop.
-  dropId: uuid("drop_id").references(() => drops.id, { onDelete: "restrict" }),
+  dropId: uuid("drop_id").references(() => drops.id, { onDelete: "set null" }),
   // Dozen of one specific cookie within a drop.
   dropItemId: uuid("drop_item_id").references(() => dropItems.id, {
-    onDelete: "restrict",
+    onDelete: "set null",
   }),
 
   // Snapshot fields so historical orders aren't broken by later edits.

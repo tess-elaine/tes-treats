@@ -206,24 +206,41 @@ export async function deleteProductAction(formData: FormData) {
 export async function addProductImageAction(formData: FormData) {
   await requireAdmin();
   const productId = s(formData.get("productId"));
-  const file = formData.get("image") as File | null;
-  if (!productId || !file || !(file instanceof File) || file.size === 0) return;
-  if (file.size > 8 * 1024 * 1024) {
-    redirect(`/admin/products/${productId}?error=image-size`);
-  }
+  if (!productId) return;
 
-  const url = await uploadProductImage(productId, file);
-  // Decide primary: if there are no images yet, this becomes primary.
+  const incoming = formData.getAll("image") as unknown as File[];
+  const files = incoming.filter(
+    (f): f is File =>
+      f instanceof File && f.size > 0 && f.size <= 8 * 1024 * 1024,
+  );
+  const oversize = incoming.some(
+    (f) => f instanceof File && f.size > 8 * 1024 * 1024,
+  );
+  if (oversize) redirect(`/admin/products/${productId}?error=image-size`);
+  if (files.length === 0) return;
+
+  // Shared alt text for the batch. Tess can override per-image later in the
+  // bulk-save form if she wants different alts.
+  const alt = s(formData.get("alt")) || null;
+
   const existing = await db.query.productImages.findMany({
     where: (t, { eq }) => eq(t.productId, productId),
+    columns: { id: true },
   });
-  await db.insert(productImages).values({
-    productId,
-    url,
-    alt: s(formData.get("alt")) || null,
-    isPrimary: existing.length === 0,
-    sortOrder: existing.length * 10,
-  });
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const url = await uploadProductImage(productId, file);
+    const totalAlready = existing.length + i;
+    await db.insert(productImages).values({
+      productId,
+      url,
+      alt,
+      isPrimary: totalAlready === 0, // first ever upload becomes primary
+      sortOrder: totalAlready * 10,
+    });
+  }
+
   revalidatePath(`/admin/products/${productId}`);
 }
 

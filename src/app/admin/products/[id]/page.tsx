@@ -220,31 +220,35 @@ export default async function AdminProductDetail({
           </p>
         )}
 
-        <form
-          action={addProductImageAction}
-          encType="multipart/form-data"
-          className="mt-8 rounded-md bg-primary-fixed p-5"
-        >
-          <input type="hidden" name="productId" value={product.id} />
-          <p className="font-headline text-base font-bold text-primary">
-            Add a new image
-          </p>
-          <p className="mt-1 mb-4 text-xs text-on-surface-variant">
-            File becomes <code>{product.slug}-XXXXXX.webp</code> after auto-rotate,
-            resize to 1600px max, and conversion. Replace = delete + re-upload.
-          </p>
-          <div className="space-y-3">
-            <ImageUploadField name="image" required />
+        <details className="mt-8 group rounded-md bg-primary-fixed open:p-5">
+          <summary className="cursor-pointer list-none p-4 font-headline text-base font-bold text-primary group-open:p-0 group-open:mb-4 flex items-center gap-2 hover:underline">
+            <span aria-hidden className="font-mono text-lg">+</span>
+            Add image(s) to gallery
+          </summary>
+          <form
+            action={addProductImageAction}
+            encType="multipart/form-data"
+            className="space-y-3"
+          >
+            <input type="hidden" name="productId" value={product.id} />
+            <p className="text-xs text-on-surface-variant">
+              Pick or drop multiple files at once. Each file becomes{" "}
+              <code>{product.slug}-XXXXXX.webp</code> after auto-rotate, resize
+              to 1600px max, and WebP conversion. The alt text below applies to
+              every photo in this batch — adjust per-image later if needed.
+              Replace = delete + re-upload.
+            </p>
+            <ImageUploadField name="image" multiple required />
             <input
               name="alt"
-              placeholder="Alt text (good for SEO and accessibility — describe what's in the photo)"
+              placeholder="Alt text (e.g. 'Monster cookies — peanut butter, oats, M&Ms')"
               className="ghost-border w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-sm"
             />
             <BiteButton size="lg" className="w-full">
               Upload to gallery
             </BiteButton>
-          </div>
-        </form>
+          </form>
+        </details>
 
         <p className="mt-4 text-xs text-on-surface-variant">
           The primary image powers thumbnails everywhere (cart, list, homepage). The rest form
