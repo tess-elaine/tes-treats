@@ -173,7 +173,28 @@ export async function deleteProductAction(formData: FormData) {
   await requireAdmin();
   const id = s(formData.get("id"));
   if (!id) return;
-  await db.delete(products).where(eq(products.id, id));
+
+  // Hard delete works for never-sold products (catalog cascades to variants
+  // and images). If any order line item references a variant of this product,
+  // PG raises a FK violation under the order_items.product_variant_id RESTRICT
+  // — at which point we soft-delete (mark unavailable + un-feature) so order
+  // history survives but the product disappears from /shop and admin lists
+  // (the admin list filters out unavailable rows below).
+  try {
+    await db.delete(products).where(eq(products.id, id));
+  } catch (err) {
+    const msg = String((err as { message?: string })?.message ?? err);
+    const isFkViolation =
+      msg.includes("foreign key") ||
+      msg.includes("violates") ||
+      msg.includes("23503");
+    if (!isFkViolation) throw err;
+    await db
+      .update(products)
+      .set({ isAvailable: false, isFeatured: false })
+      .where(eq(products.id, id));
+  }
+
   revalidatePath("/admin/products");
   redirect("/admin/products");
 }

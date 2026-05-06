@@ -106,9 +106,19 @@ export async function putObject(opts: {
     return { url, key };
   }
 
-  // Local filesystem fallback (dev). Files are served from /public.
+  // Local filesystem fallback (dev + Railway-volume prod).
   const dest = path.join(LOCAL_UPLOAD_DIR, key);
-  await fs.mkdir(path.dirname(dest), { recursive: true });
-  await fs.writeFile(dest, opts.body);
+  console.log(
+    `[storage] writing ${(opts.body as Buffer).byteLength} bytes to ${dest}`,
+  );
+  try {
+    await fs.mkdir(path.dirname(dest), { recursive: true });
+    await fs.writeFile(dest, opts.body);
+    const stat = await fs.stat(dest);
+    console.log(`[storage] wrote ok, size on disk: ${stat.size}`);
+  } catch (err) {
+    console.error(`[storage] write failed at ${dest}:`, err);
+    throw err;
+  }
   return { url: `/uploads/${key}`, key };
 }
