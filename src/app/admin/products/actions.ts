@@ -226,6 +226,73 @@ export async function setPrimaryImageAction(formData: FormData) {
   revalidatePath(`/admin/products/${productId}`);
 }
 
+/**
+ * Bound-arg variant of setPrimary so the gallery form can use
+ * `formAction={setPrimaryImageById.bind(null, img.id)}` without polluting the
+ * shared form data with per-image hidden ids. Saves any pending alt / sort
+ * edits in the same submission so users don't lose unsaved changes.
+ */
+export async function setPrimaryImageById(imageId: string, formData: FormData) {
+  await requireAdmin();
+  const productId = s(formData.get("productId"));
+  if (!imageId || !productId) return;
+  await applyImageDetailUpdates(formData, productId);
+  await db
+    .update(productImages)
+    .set({ isPrimary: false })
+    .where(eq(productImages.productId, productId));
+  await db
+    .update(productImages)
+    .set({ isPrimary: true })
+    .where(eq(productImages.id, imageId));
+  revalidatePath(`/admin/products/${productId}`);
+}
+
+/**
+ * Bulk-save alt text + sort order across every image on a product. Reads
+ * `alt_<id>` and `sort_<id>` keys; ignores anything else. Scoped to the
+ * product id so submitting an unrelated image id is a no-op.
+ */
+export async function bulkUpdateImageDetailsAction(formData: FormData) {
+  await requireAdmin();
+  const productId = s(formData.get("productId"));
+  if (!productId) return;
+  await applyImageDetailUpdates(formData, productId);
+  revalidatePath(`/admin/products/${productId}`);
+}
+
+async function applyImageDetailUpdates(formData: FormData, productId: string) {
+  const updates = new Map<string, { alt?: string | null; sort?: number }>();
+  for (const [key, value] of formData.entries()) {
+    const altMatch = key.match(/^alt_(.+)$/);
+    const sortMatch = key.match(/^sort_(.+)$/);
+    if (altMatch) {
+      const id = altMatch[1];
+      const alt = String(value).trim() || null;
+      updates.set(id, { ...(updates.get(id) ?? {}), alt });
+    } else if (sortMatch) {
+      const id = sortMatch[1];
+      const n = Number(String(value).trim());
+      updates.set(id, {
+        ...(updates.get(id) ?? {}),
+        sort: Number.isFinite(n) ? n : 0,
+      });
+    }
+  }
+
+  for (const [id, u] of updates.entries()) {
+    await db
+      .update(productImages)
+      .set({
+        ...(u.alt !== undefined ? { alt: u.alt } : {}),
+        ...(u.sort !== undefined ? { sortOrder: u.sort } : {}),
+      })
+      .where(
+        and(eq(productImages.id, id), eq(productImages.productId, productId)),
+      );
+  }
+}
+
 export async function reorderProductImageAction(formData: FormData) {
   await requireAdmin();
   const id = s(formData.get("id"));
@@ -256,6 +323,19 @@ export async function deleteProductImageAction(formData: FormData) {
   const id = s(formData.get("id"));
   const productId = s(formData.get("productId"));
   if (!id) return;
+  await deleteImageInternal(id, productId);
+}
+
+/** Bound-arg variant; see `setPrimaryImageById` for rationale. */
+export async function deleteProductImageById(imageId: string, formData: FormData) {
+  await requireAdmin();
+  const productId = s(formData.get("productId"));
+  if (!imageId) return;
+  if (productId) await applyImageDetailUpdates(formData, productId);
+  await deleteImageInternal(imageId, productId);
+}
+
+async function deleteImageInternal(id: string, productId: string) {
   // If we delete the primary, promote another one if any remain.
   const target = await db.query.productImages.findFirst({
     where: (t, { eq }) => eq(t.id, id),

@@ -20,11 +20,9 @@ import {
   setDefaultVariantAction,
   deleteVariantAction,
   addProductImageAction,
-  replaceProductImageAction,
-  setPrimaryImageAction,
-  reorderProductImageAction,
-  updateImageAltAction,
-  deleteProductImageAction,
+  bulkUpdateImageDetailsAction,
+  setPrimaryImageById,
+  deleteProductImageById,
 } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -134,111 +132,106 @@ export default async function AdminProductDetail({
           </span>
         </div>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {images.map((img) => (
-            <div
-              key={img.id}
-              className="rounded-md bg-surface-container-low p-3"
-            >
-              <div className="relative aspect-square overflow-hidden rounded-md bg-surface-container-high">
-                <Image src={img.url} alt={img.alt ?? "Product photo"} fill sizes="240px" className="object-cover" />
-                {img.isPrimary ? (
-                  <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-1 font-label text-[0.625rem] font-bold uppercase tracking-[0.12em] text-on-primary">
-                    ★ Primary
-                  </span>
-                ) : null}
-              </div>
+        {images.length > 0 ? (
+          <form action={bulkUpdateImageDetailsAction} className="mt-4">
+            <input type="hidden" name="productId" value={product.id} />
 
-              <form action={replaceProductImageAction} encType="multipart/form-data" className="mt-3 flex flex-col gap-2">
-                <input type="hidden" name="id" value={img.id} />
-                <input type="hidden" name="productId" value={product.id} />
-                <label className="block">
-                  <span className="sr-only">Replace this image</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    name="image"
-                    className="block w-full font-body text-xs text-on-surface file:mr-2 file:rounded-md file:border-0 file:bg-secondary-container file:px-3 file:py-1.5 file:font-headline file:font-bold file:text-on-secondary-container hover:file:bg-secondary-fixed"
-                  />
-                </label>
-                <button
-                  type="submit"
-                  className="self-start font-label text-xs uppercase tracking-[0.12em] text-primary hover:underline"
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {images.map((img) => (
+                <div
+                  key={img.id}
+                  className="rounded-md bg-surface-container-low p-3"
                 >
-                  Replace image
-                </button>
-              </form>
+                  <div className="relative aspect-square overflow-hidden rounded-md bg-surface-container-high">
+                    <Image
+                      src={img.url}
+                      alt={img.alt ?? "Product photo"}
+                      fill
+                      sizes="240px"
+                      className="object-cover"
+                    />
+                    {img.isPrimary ? (
+                      <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-1 font-label text-[0.625rem] font-bold uppercase tracking-[0.12em] text-on-primary">
+                        ★ Primary
+                      </span>
+                    ) : null}
+                  </div>
 
-              <form action={updateImageAltAction} className="mt-2 flex items-center gap-2">
-                <input type="hidden" name="id" value={img.id} />
-                <input type="hidden" name="productId" value={product.id} />
-                <input
-                  name="alt"
-                  defaultValue={img.alt ?? ""}
-                  placeholder="Alt text"
-                  className="ghost-border flex-1 rounded-md bg-surface-container-high px-2 py-1 font-body text-xs"
-                />
-                <button
-                  type="submit"
-                  className="font-label text-xs uppercase tracking-[0.12em] text-primary hover:underline"
-                >
-                  Save
-                </button>
-              </form>
+                  <label className="mt-3 block">
+                    <span className="font-label text-[0.625rem] uppercase tracking-[0.12em] text-on-surface-variant">
+                      Alt text
+                    </span>
+                    <input
+                      name={`alt_${img.id}`}
+                      defaultValue={img.alt ?? ""}
+                      placeholder="Describe the photo"
+                      className="ghost-border mt-1 w-full rounded-md bg-surface-container-high px-2 py-1.5 font-body text-xs text-on-surface focus:bg-primary-fixed focus:outline-none"
+                    />
+                  </label>
 
-              <form action={reorderProductImageAction} className="mt-2 flex items-center gap-2">
-                <input type="hidden" name="id" value={img.id} />
-                <input type="hidden" name="productId" value={product.id} />
-                <label className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant">Sort</label>
-                <input
-                  name="sortOrder"
-                  type="number"
-                  defaultValue={img.sortOrder}
-                  className="ghost-border w-16 rounded-md bg-surface-container-high px-2 py-1 font-body text-xs text-center"
-                />
-                <button type="submit" className="font-label text-xs uppercase tracking-[0.12em] text-primary hover:underline">
-                  Set
-                </button>
-              </form>
+                  <label className="mt-2 flex items-center gap-2">
+                    <span className="font-label text-[0.625rem] uppercase tracking-[0.12em] text-on-surface-variant">
+                      Sort
+                    </span>
+                    <input
+                      name={`sort_${img.id}`}
+                      type="number"
+                      defaultValue={img.sortOrder}
+                      className="ghost-border w-20 rounded-md bg-surface-container-high px-2 py-1.5 font-body text-xs text-on-surface text-center focus:bg-primary-fixed focus:outline-none"
+                    />
+                  </label>
 
-              <div className="mt-3 flex justify-between">
-                {!img.isPrimary ? (
-                  <form action={setPrimaryImageAction}>
-                    <input type="hidden" name="id" value={img.id} />
-                    <input type="hidden" name="productId" value={product.id} />
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    {!img.isPrimary ? (
+                      <button
+                        type="submit"
+                        formAction={setPrimaryImageById.bind(null, img.id)}
+                        className="font-label text-xs uppercase tracking-[0.12em] text-primary hover:underline"
+                      >
+                        Make primary
+                      </button>
+                    ) : (
+                      <span />
+                    )}
                     <button
                       type="submit"
-                      className="font-label text-xs uppercase tracking-[0.12em] text-primary hover:underline"
+                      formAction={deleteProductImageById.bind(null, img.id)}
+                      className="font-label text-xs uppercase tracking-[0.12em] text-on-error-container hover:underline"
                     >
-                      Make primary
+                      Delete
                     </button>
-                  </form>
-                ) : (
-                  <span />
-                )}
-                <form action={deleteProductImageAction}>
-                  <input type="hidden" name="id" value={img.id} />
-                  <input type="hidden" name="productId" value={product.id} />
-                  <button
-                    type="submit"
-                    className="font-label text-xs uppercase tracking-[0.12em] text-on-error-container hover:underline"
-                  >
-                    Delete
-                  </button>
-                </form>
-              </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
 
-          <form
-            action={addProductImageAction}
-            encType="multipart/form-data"
-            className="flex flex-col gap-3 rounded-md bg-surface-container-lowest p-4"
-          >
-            <input type="hidden" name="productId" value={product.id} />
-            <p className="font-label uppercase tracking-[0.12em] text-on-surface-variant">
-              Add a new image
-            </p>
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <p className="text-xs text-on-surface-variant">
+                Saves all alt text and sort order at once.
+              </p>
+              <BiteButton size="md">Save changes</BiteButton>
+            </div>
+          </form>
+        ) : (
+          <p className="mt-4 text-on-surface-variant">
+            No images yet. Upload one below.
+          </p>
+        )}
+
+        <form
+          action={addProductImageAction}
+          encType="multipart/form-data"
+          className="mt-8 rounded-md bg-surface-container-lowest p-4"
+        >
+          <input type="hidden" name="productId" value={product.id} />
+          <p className="font-label uppercase tracking-[0.12em] text-on-surface-variant">
+            Add a new image
+          </p>
+          <p className="mt-1 mb-3 text-xs text-on-surface-variant">
+            We&rsquo;ll auto-rotate, resize to 1600px max, and optimize. To
+            replace an existing image, delete it and upload again.
+          </p>
+          <div className="space-y-3">
             <ImageUploadField name="image" required />
             <input
               name="alt"
@@ -246,8 +239,9 @@ export default async function AdminProductDetail({
               className="ghost-border w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-sm"
             />
             <BiteButton size="md">+ Upload</BiteButton>
-          </form>
-        </div>
+          </div>
+        </form>
+
         <p className="mt-4 text-xs text-on-surface-variant">
           The primary image powers thumbnails everywhere (cart, list, homepage). The rest form
           the gallery on the public product page.
