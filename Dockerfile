@@ -33,22 +33,19 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-# Non-root user
-RUN addgroup --system --gid 1001 nodejs \
- && adduser  --system --uid 1001 nextjs
-
 # Copy the standalone build (.next/standalone has its own minimal node_modules)
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 # Migrations: scripts/migrate.mjs uses drizzle-orm's runtime migrator (no
 # drizzle-kit, no esbuild) so it works in the standalone runtime image.
-COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/migrate.mjs ./scripts/migrate.mjs
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/postgres ./node_modules/postgres
+COPY --from=builder /app/drizzle ./drizzle
+COPY --from=builder /app/scripts/migrate.mjs ./scripts/migrate.mjs
+COPY --from=builder /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
+COPY --from=builder /app/node_modules/postgres ./node_modules/postgres
 
-USER nextjs
+# Runs as root so it can read Railway-volume's root-owned lost+found dir.
+# Single-purpose container; root inside the container is isolated by Docker.
 EXPOSE 3000
 
 # Apply migrations then start the standalone server. If you'd rather run
