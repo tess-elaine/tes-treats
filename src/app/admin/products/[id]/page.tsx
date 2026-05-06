@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { BiteButton } from "@/components/ui/bite-button";
 import { NibbleCard } from "@/components/ui/nibble-card";
 import { CategoryTypeahead } from "@/components/ui/category-typeahead";
+import { ImageUploadField } from "@/components/ui/image-upload-field";
 import { db } from "@/db";
 import { formatCents } from "@/lib/format";
 import {
@@ -232,19 +233,13 @@ export default async function AdminProductDetail({
           <form
             action={addProductImageAction}
             encType="multipart/form-data"
-            className="flex flex-col gap-3 rounded-md bg-surface-container-lowest p-4 ghost-border"
+            className="flex flex-col gap-3 rounded-md bg-surface-container-lowest p-4"
           >
             <input type="hidden" name="productId" value={product.id} />
             <p className="font-label uppercase tracking-[0.12em] text-on-surface-variant">
               Add a new image
             </p>
-            <input
-              type="file"
-              accept="image/*"
-              name="image"
-              required
-              className="block w-full font-body text-sm text-on-surface file:mr-3 file:rounded-md file:border-0 file:bg-secondary-container file:px-4 file:py-2 file:font-headline file:font-bold file:text-on-secondary-container hover:file:bg-secondary-fixed"
-            />
+            <ImageUploadField name="image" required />
             <input
               name="alt"
               placeholder="Alt text (optional)"

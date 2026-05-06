@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BiteButton } from "@/components/ui/bite-button";
 import { NibbleCard } from "@/components/ui/nibble-card";
 import { CategoryTypeahead } from "@/components/ui/category-typeahead";
+import { ImageUploadField } from "@/components/ui/image-upload-field";
 import { listCategories } from "@/lib/products";
 import { createProductAction } from "../actions";
 
@@ -63,7 +64,15 @@ export default async function NewProductPage({
             <Toggle name="isAvailable" label="Available on /shop" defaultChecked />
             <Toggle name="isFeatured" label="Show on homepage as featured" />
           </div>
-          <FileField name="image" label="Primary image (optional, ≤ 8MB) — gallery extras can be added after saving" />
+          <div>
+            <p className="font-label uppercase tracking-[0.12em] text-on-surface-variant">
+              Primary image (optional)
+            </p>
+            <p className="mt-1 mb-2 text-xs text-on-surface-variant">
+              You can add more images to the gallery after saving.
+            </p>
+            <ImageUploadField name="image" />
+          </div>
 
           <fieldset className="rounded-md bg-surface-container-low p-4">
             <legend className="px-2 font-label uppercase tracking-[0.12em] text-on-surface-variant">
@@ -139,19 +148,6 @@ function Toggle({ name, label, defaultChecked }: { name: string; label: string; 
     <label className="flex items-center gap-3">
       <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4 accent-primary" />
       <span>{label}</span>
-    </label>
-  );
-}
-function FileField({ name, label }: { name: string; label: string }) {
-  return (
-    <label className="block">
-      <span className="font-label uppercase tracking-[0.12em] text-on-surface-variant">{label}</span>
-      <input
-        name={name}
-        type="file"
-        accept="image/*"
-        className="mt-2 block w-full font-body text-sm text-on-surface file:mr-3 file:rounded-md file:border-0 file:bg-secondary-container file:px-4 file:py-2 file:font-headline file:font-bold file:text-on-secondary-container hover:file:bg-secondary-fixed"
-      />
     </label>
   );
 }

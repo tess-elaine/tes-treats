@@ -5,6 +5,12 @@ const nextConfig: NextConfig = {
   // into our Dockerfile. Lets the production image stay tiny (no node_modules).
   output: "standalone",
 
+  // sharp ships native (.node) bindings + per-libc binaries (glibc + musl).
+  // Marking it external keeps it loaded via require() at runtime so the right
+  // binary is picked, instead of getting bundled (which strips the platform
+  // selection logic).
+  serverExternalPackages: ["sharp"],
+
   // Allow next/image to optimize the local-FS uploads served from /public/uploads/.
   // Production storage goes to S3-compatible (lib/storage.ts) and those URLs are
   // already absolute; this just covers the dev path.

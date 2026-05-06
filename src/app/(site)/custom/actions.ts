@@ -5,7 +5,7 @@ import { randomBytes } from "crypto";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { customRequests, customRequestPhotos } from "@/db/schema/custom_requests";
-import { putObject } from "@/lib/storage";
+import { putObject, processUploadedImage } from "@/lib/storage";
 import { sendEmail } from "@/lib/email";
 
 const MAX_PHOTOS = 5;
@@ -56,12 +56,13 @@ export async function submitCustomRequestAction(formData: FormData) {
     const file = toUpload[i];
     if (file.size > MAX_BYTES) continue; // silently skip oversized
     try {
-      const buf = Buffer.from(await file.arrayBuffer());
+      const raw = Buffer.from(await file.arrayBuffer());
+      const processed = await processUploadedImage(raw);
       const { url } = await putObject({
         prefix: `custom-requests/${request.id}`,
-        filename: file.name,
-        body: buf,
-        contentType: file.type || "application/octet-stream",
+        filename: `photo-${i + 1}${processed.extension}`,
+        body: processed.buffer,
+        contentType: processed.contentType,
       });
       await db.insert(customRequestPhotos).values({
         requestId: request.id,

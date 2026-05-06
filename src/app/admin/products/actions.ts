@@ -10,7 +10,7 @@ import {
   productCategories,
   productImages,
 } from "@/db/schema/catalog";
-import { putObject } from "@/lib/storage";
+import { putObject, processUploadedImage } from "@/lib/storage";
 import { requireAdmin } from "@/lib/auth-helpers";
 
 function s(v: FormDataEntryValue | null) {
@@ -55,12 +55,13 @@ async function resolveCategoryId(formData: FormData): Promise<string | null> {
 }
 
 async function uploadProductImage(productId: string, file: File): Promise<string> {
-  const buf = Buffer.from(await file.arrayBuffer());
+  const raw = Buffer.from(await file.arrayBuffer());
+  const processed = await processUploadedImage(raw);
   const { url } = await putObject({
     prefix: `products/${productId}`,
-    filename: file.name,
-    body: buf,
-    contentType: file.type || "image/jpeg",
+    filename: `image${processed.extension}`,
+    body: processed.buffer,
+    contentType: processed.contentType,
   });
   return url;
 }

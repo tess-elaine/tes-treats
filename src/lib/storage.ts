@@ -15,6 +15,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { randomBytes } from "crypto";
+import sharp from "sharp";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 let cachedS3: S3Client | null = null;
@@ -37,6 +38,34 @@ function getS3(): S3Client | null {
 const LOCAL_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 
 export type UploadResult = { url: string; key: string };
+
+/**
+ * Normalize an uploaded image:
+ *   - honor EXIF orientation so iPhone vertical shots don't render sideways
+ *   - cap the longest edge at 1600px (covers hero use; saves disk + bandwidth)
+ *   - re-encode to WebP @ q82 — ~5–10x smaller than source JPEG with no
+ *     visible quality loss for product photos. next/image still re-optimizes
+ *     for browser-best-format on serve, so AVIF clients get an even smaller
+ *     payload.
+ *
+ * Returns processed buffer + the canonical content type / extension to use
+ * when storing.
+ */
+export async function processUploadedImage(
+  input: Buffer | Uint8Array,
+): Promise<{ buffer: Buffer; contentType: string; extension: string }> {
+  const buffer = await sharp(input)
+    .rotate()
+    .resize({
+      width: 1600,
+      height: 1600,
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .webp({ quality: 82 })
+    .toBuffer();
+  return { buffer, contentType: "image/webp", extension: ".webp" };
+}
 
 export async function putObject(opts: {
   /** Logical folder, e.g. "custom-requests/photos" */
