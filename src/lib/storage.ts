@@ -73,9 +73,19 @@ export async function putObject(opts: {
   filename: string;
   body: Buffer | Uint8Array;
   contentType: string;
+  /**
+   * Optional explicit key (full path). If provided, used as-is. Otherwise
+   * the key is generated from `prefix` + random hex + extension.
+   */
+  key?: string;
 }): Promise<UploadResult> {
-  const ext = path.extname(opts.filename).toLowerCase().replace(/[^.a-z0-9]/g, "");
-  const key = `${opts.prefix.replace(/^\/|\/$/g, "")}/${randomBytes(12).toString("hex")}${ext}`;
+  let key: string;
+  if (opts.key) {
+    key = opts.key;
+  } else {
+    const ext = path.extname(opts.filename).toLowerCase().replace(/[^.a-z0-9]/g, "");
+    key = `${opts.prefix.replace(/^\/|\/$/g, "")}/${randomBytes(12).toString("hex")}${ext}`;
+  }
 
   const s3 = getS3();
   const bucket = process.env.SPACES_BUCKET;

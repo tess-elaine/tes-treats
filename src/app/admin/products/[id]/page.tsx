@@ -207,38 +207,42 @@ export default async function AdminProductDetail({
 
             <div className="mt-6 flex items-center justify-end gap-3">
               <p className="text-xs text-on-surface-variant">
-                Saves all alt text and sort order at once.
+                Save alt text + sort order for all images.
               </p>
-              <BiteButton size="md">Save changes</BiteButton>
+              <BiteButton size="md" variant="ghost">
+                Save details
+              </BiteButton>
             </div>
           </form>
         ) : (
           <p className="mt-4 text-on-surface-variant">
-            No images yet. Upload one below.
+            No images yet. Upload your first one below.
           </p>
         )}
 
         <form
           action={addProductImageAction}
           encType="multipart/form-data"
-          className="mt-8 rounded-md bg-surface-container-lowest p-4"
+          className="mt-8 rounded-md bg-primary-fixed p-5"
         >
           <input type="hidden" name="productId" value={product.id} />
-          <p className="font-label uppercase tracking-[0.12em] text-on-surface-variant">
+          <p className="font-headline text-base font-bold text-primary">
             Add a new image
           </p>
-          <p className="mt-1 mb-3 text-xs text-on-surface-variant">
-            We&rsquo;ll auto-rotate, resize to 1600px max, and optimize. To
-            replace an existing image, delete it and upload again.
+          <p className="mt-1 mb-4 text-xs text-on-surface-variant">
+            File becomes <code>{product.slug}-XXXXXX.webp</code> after auto-rotate,
+            resize to 1600px max, and conversion. Replace = delete + re-upload.
           </p>
           <div className="space-y-3">
             <ImageUploadField name="image" required />
             <input
               name="alt"
-              placeholder="Alt text (optional)"
+              placeholder="Alt text (good for SEO and accessibility — describe what's in the photo)"
               className="ghost-border w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-sm"
             />
-            <BiteButton size="md">+ Upload</BiteButton>
+            <BiteButton size="lg" className="w-full">
+              Upload to gallery
+            </BiteButton>
           </div>
         </form>
 

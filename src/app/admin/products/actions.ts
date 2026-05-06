@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { randomBytes } from "crypto";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import {
@@ -57,11 +58,23 @@ async function resolveCategoryId(formData: FormData): Promise<string | null> {
 async function uploadProductImage(productId: string, file: File): Promise<string> {
   const raw = Buffer.from(await file.arrayBuffer());
   const processed = await processUploadedImage(raw);
+
+  // SEO-friendly key: <product-slug>-<6 hex>.webp under the product's folder.
+  // Random suffix avoids collisions when re-uploading the same logical image.
+  const product = await db.query.products.findFirst({
+    where: (t, { eq }) => eq(t.id, productId),
+    columns: { slug: true },
+  });
+  const slug = product?.slug ? slugify(product.slug) : "image";
+  const suffix = randomBytes(3).toString("hex");
+  const key = `products/${productId}/${slug}-${suffix}${processed.extension}`;
+
   const { url } = await putObject({
     prefix: `products/${productId}`,
-    filename: `image${processed.extension}`,
+    filename: `${slug}-${suffix}${processed.extension}`,
     body: processed.buffer,
     contentType: processed.contentType,
+    key,
   });
   return url;
 }
