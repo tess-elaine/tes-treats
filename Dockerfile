@@ -41,11 +41,10 @@ RUN addgroup --system --gid 1001 nodejs \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-# Drizzle migrations are needed for `drizzle-kit migrate` at deploy time. The
-# entrypoint script applies them before starting the server.
+# Migrations: scripts/migrate.mjs uses drizzle-orm's runtime migrator (no
+# drizzle-kit, no esbuild) so it works in the standalone runtime image.
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
-COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./drizzle.config.ts
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/drizzle-kit ./node_modules/drizzle-kit
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/migrate.mjs ./scripts/migrate.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/postgres ./node_modules/postgres
 
@@ -54,4 +53,4 @@ EXPOSE 3000
 
 # Apply migrations then start the standalone server. If you'd rather run
 # migrations as a separate one-off task, override the CMD on deploy.
-CMD ["sh", "-c", "node node_modules/drizzle-kit/bin.cjs migrate && node server.js"]
+CMD ["sh", "-c", "node scripts/migrate.mjs && node server.js"]
