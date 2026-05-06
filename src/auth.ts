@@ -39,33 +39,37 @@ type AppJWT = { id?: string; role?: "customer" | "admin" };
 
 // Resend HTTP API for magic-link sign-in. Avoids SMTP entirely (Railway and
 // most managed hosts block outbound 25/465/587). Custom sendVerificationRequest
-// overrides the default template so the email is on-brand.
-const magicLinkProvider = Resend({
-  apiKey: process.env.AUTH_RESEND_KEY ?? process.env.SMTP_PASS ?? "",
-  from: process.env.EMAIL_FROM ?? "TES Treats <noreply@localhost>",
-  maxAge: 60 * 60, // 1 hour
-  async sendVerificationRequest({ identifier, url, provider }) {
-    const host = new URL(url).host;
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${provider.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: provider.from,
-        to: identifier,
-        subject: "Your TES Treats sign-in link",
-        html: signInEmailHtml(url, host),
-        text: `Click to sign in: ${url}`,
-      }),
-    });
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`Resend error ${res.status}: ${body}`);
-    }
-  },
-});
+// overrides the default template so the email is on-brand. id stays "email"
+// to keep call sites stable (they pass that string to signIn()).
+const magicLinkProvider = {
+  ...Resend({
+    apiKey: process.env.AUTH_RESEND_KEY ?? process.env.SMTP_PASS ?? "",
+    from: process.env.EMAIL_FROM ?? "TES Treats <noreply@localhost>",
+    maxAge: 60 * 60, // 1 hour
+    async sendVerificationRequest({ identifier, url, provider }) {
+      const host = new URL(url).host;
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${provider.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: provider.from,
+          to: identifier,
+          subject: "Your TES Treats sign-in link",
+          html: signInEmailHtml(url, host),
+          text: `Click to sign in: ${url}`,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`Resend error ${res.status}: ${body}`);
+      }
+    },
+  }),
+  id: "email",
+};
 
 function signInEmailHtml(url: string, host: string) {
   return `
