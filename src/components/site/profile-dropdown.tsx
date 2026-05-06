@@ -93,7 +93,7 @@ export function ProfileDropdown({ user }: Props) {
           <form action={signOutAction} className="px-5 py-3">
             <button
               type="submit"
-              className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant hover:text-primary"
+              className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant hover:text-primary hover:underline cursor-pointer"
             >
               Sign out
             </button>
