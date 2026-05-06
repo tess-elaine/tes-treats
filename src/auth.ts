@@ -11,8 +11,8 @@
  * Next 16: this runs in the Node runtime (proxy.ts requirement).
  */
 import NextAuth, { type DefaultSession } from "next-auth";
-import type { EmailConfig } from "next-auth/providers";
 import Google from "next-auth/providers/google";
+import Resend from "next-auth/providers/resend";
 import Credentials from "next-auth/providers/credentials";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { eq } from "drizzle-orm";
@@ -24,7 +24,6 @@ import {
   sessions,
   verificationTokens,
 } from "@/db/schema/auth";
-import { sendEmail } from "@/lib/email";
 import { isAdminEmail } from "@/lib/admin-bootstrap";
 
 declare module "next-auth" {
@@ -38,24 +37,35 @@ declare module "next-auth" {
 
 type AppJWT = { id?: string; role?: "customer" | "admin" };
 
-const magicLinkProvider: EmailConfig = {
-  id: "email",
-  type: "email",
-  name: "Email",
-  server: {},
+// Resend HTTP API for magic-link sign-in. Avoids SMTP entirely (Railway and
+// most managed hosts block outbound 25/465/587). Custom sendVerificationRequest
+// overrides the default template so the email is on-brand.
+const magicLinkProvider = Resend({
+  apiKey: process.env.AUTH_RESEND_KEY ?? process.env.SMTP_PASS ?? "",
   from: process.env.EMAIL_FROM ?? "TES Treats <noreply@localhost>",
   maxAge: 60 * 60, // 1 hour
-  options: {},
-  async sendVerificationRequest({ identifier, url }) {
+  async sendVerificationRequest({ identifier, url, provider }) {
     const host = new URL(url).host;
-    await sendEmail({
-      to: identifier,
-      subject: "Your TES Treats sign-in link",
-      html: signInEmailHtml(url, host),
-      text: `Click to sign in: ${url}`,
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${provider.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: provider.from,
+        to: identifier,
+        subject: "Your TES Treats sign-in link",
+        html: signInEmailHtml(url, host),
+        text: `Click to sign in: ${url}`,
+      }),
     });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Resend error ${res.status}: ${body}`);
+    }
   },
-};
+});
 
 function signInEmailHtml(url: string, host: string) {
   return `
