@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BiteButton } from "@/components/ui/bite-button";
 import { NibbleCard } from "@/components/ui/nibble-card";
+import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { db } from "@/db";
 import { toggleHolidayHiddenAction, deleteHolidayAction } from "./actions";
 
@@ -73,12 +74,12 @@ export default async function AdminHolidaysPage() {
                       </form>
                       <form action={deleteHolidayAction}>
                         <input type="hidden" name="id" value={h.id} />
-                        <button
-                          type="submit"
+                        <ConfirmSubmit
+                          message={`Delete "${h.name}" permanently?`}
                           className="font-label text-xs uppercase tracking-[0.12em] text-on-error-container hover:underline"
                         >
                           Delete
-                        </button>
+                        </ConfirmSubmit>
                       </form>
                     </div>
                   </Td>

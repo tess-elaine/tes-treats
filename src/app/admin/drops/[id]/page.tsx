@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { count, isNull } from "drizzle-orm";
 import { BiteButton } from "@/components/ui/bite-button";
 import { NibbleCard } from "@/components/ui/nibble-card";
+import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { db } from "@/db";
 import { dropSubscribers } from "@/db/schema/drops";
 import { formatCents, formatDate } from "@/lib/format";
@@ -275,12 +276,12 @@ function DeleteForm({ idValue, dropId }: { idValue: string; dropId: string }) {
     <form action={deleteDropItemAction}>
       <input type="hidden" name="id" value={idValue} />
       <input type="hidden" name="dropId" value={dropId} />
-      <button
-        type="submit"
+      <ConfirmSubmit
+        message="Remove this cookie from the drop?"
         className="font-label text-xs uppercase tracking-[0.12em] text-on-error-container hover:underline"
       >
         Remove
-      </button>
+      </ConfirmSubmit>
     </form>
   );
 }

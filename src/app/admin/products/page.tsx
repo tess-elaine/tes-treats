@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { BiteButton } from "@/components/ui/bite-button";
 import { NibbleCard } from "@/components/ui/nibble-card";
+import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { db } from "@/db";
 import { formatCents } from "@/lib/format";
 import { primaryImagesByProductIds, listCategories } from "@/lib/products";
@@ -102,12 +103,12 @@ export default async function AdminProductsPage() {
                     <Td>
                       <form action={deleteProductAction}>
                         <input type="hidden" name="id" value={p.id} />
-                        <button
-                          type="submit"
+                        <ConfirmSubmit
+                          message={`Delete "${p.name}" permanently?`}
                           className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant hover:text-error"
                         >
                           Delete
-                        </button>
+                        </ConfirmSubmit>
                       </form>
                     </Td>
                   </tr>

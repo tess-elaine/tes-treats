@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { sql } from "drizzle-orm";
 import { BiteButton } from "@/components/ui/bite-button";
 import { NibbleCard } from "@/components/ui/nibble-card";
+import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { db } from "@/db";
 import { products } from "@/db/schema/catalog";
 import { updateCategoryAction, deleteCategoryAction } from "../actions";
@@ -51,14 +52,14 @@ export default async function AdminCategoryDetail({
         </div>
         <form action={deleteCategoryAction}>
           <input type="hidden" name="id" value={cat.id} />
-          <button
-            type="submit"
+          <ConfirmSubmit
+            message={`Delete category "${cat.name}" permanently?`}
             disabled={productCount > 0}
             className="font-label text-xs uppercase tracking-[0.12em] text-on-error-container hover:underline disabled:opacity-40 disabled:no-underline disabled:hover:no-underline"
             title={productCount > 0 ? "Reassign products before deleting" : "Delete category"}
           >
             Delete category
-          </button>
+          </ConfirmSubmit>
         </form>
       </header>
 

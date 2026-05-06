@@ -53,8 +53,7 @@ export default async function NewProductPage({
             <Field name="name" label="Name" required />
             <Field name="slug" label="URL slug (auto from name if blank)" />
           </div>
-          <Field name="shortDescription" label="Short description (one-liner shown on cards)" />
-          <TextArea name="description" label="Full description (shown on the product page)" rows={4} />
+          <TextArea name="shortDescription" label="Description" rows={5} />
           <div className="grid gap-4 md:grid-cols-3">
             <CategoryTypeahead categories={categories} required />
             <Field name="sortOrder" type="number" label="Sort order (lower = earlier)" defaultValue="0" />

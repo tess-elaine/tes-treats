@@ -5,6 +5,7 @@ import { BiteButton } from "@/components/ui/bite-button";
 import { NibbleCard } from "@/components/ui/nibble-card";
 import { CategoryTypeahead } from "@/components/ui/category-typeahead";
 import { ImageUploadField } from "@/components/ui/image-upload-field";
+import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { db } from "@/db";
 import { formatCents } from "@/lib/format";
 import {
@@ -74,12 +75,12 @@ export default async function AdminProductDetail({
         </div>
         <form action={deleteProductAction}>
           <input type="hidden" name="id" value={product.id} />
-          <button
-            type="submit"
+          <ConfirmSubmit
+            message={`Delete "${product.name}" permanently? Past orders keep their snapshots, but the product, its variants, and all images are removed.`}
             className="font-label text-xs uppercase tracking-[0.12em] text-on-error-container hover:underline"
           >
             Delete product
-          </button>
+          </ConfirmSubmit>
         </form>
       </header>
 
@@ -102,8 +103,7 @@ export default async function AdminProductDetail({
             <Field name="name" label="Name" defaultValue={product.name} required />
             <Field name="slug" label="URL slug" defaultValue={product.slug} />
           </div>
-          <Field name="shortDescription" label="Short description" defaultValue={product.shortDescription ?? ""} />
-          <TextArea name="description" label="Full description" rows={5} defaultValue={product.description ?? ""} />
+          <TextArea name="shortDescription" label="Description" rows={5} defaultValue={product.shortDescription ?? ""} />
           <div className="grid gap-4 md:grid-cols-3">
             <CategoryTypeahead categories={categories} defaultValue={currentCategory?.slug} required />
             <Field name="sortOrder" type="number" label="Sort order" defaultValue={String(product.sortOrder)} />
@@ -193,13 +193,13 @@ export default async function AdminProductDetail({
                     ) : (
                       <span />
                     )}
-                    <button
-                      type="submit"
+                    <ConfirmSubmit
+                      message="Delete this image permanently?"
                       formAction={deleteProductImageById.bind(null, img.id)}
                       className="font-label text-xs uppercase tracking-[0.12em] text-on-error-container hover:underline"
                     >
                       Delete
-                    </button>
+                    </ConfirmSubmit>
                   </div>
                 </div>
               ))}
@@ -321,18 +321,25 @@ function DangerForm({
   action: (fd: FormData) => Promise<void>;
   idValue: string; productId: string; label: string; danger?: boolean;
 }) {
+  const cls = `font-label text-xs uppercase tracking-[0.12em] ${
+    danger ? "text-on-error-container hover:underline" : "text-primary hover:underline"
+  }`;
   return (
     <form action={action}>
       <input type="hidden" name="id" value={idValue} />
       <input type="hidden" name="productId" value={productId} />
-      <button
-        type="submit"
-        className={`font-label text-xs uppercase tracking-[0.12em] ${
-          danger ? "text-on-error-container hover:underline" : "text-primary hover:underline"
-        }`}
-      >
-        {label}
-      </button>
+      {danger ? (
+        <ConfirmSubmit
+          message={`${label} this permanently? This can't be undone.`}
+          className={cls}
+        >
+          {label}
+        </ConfirmSubmit>
+      ) : (
+        <button type="submit" className={cls}>
+          {label}
+        </button>
+      )}
     </form>
   );
 }

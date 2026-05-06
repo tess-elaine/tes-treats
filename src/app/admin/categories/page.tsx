@@ -2,6 +2,7 @@ import Link from "next/link";
 import { sql } from "drizzle-orm";
 import { BiteButton } from "@/components/ui/bite-button";
 import { NibbleCard } from "@/components/ui/nibble-card";
+import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { db } from "@/db";
 import { productCategories, products } from "@/db/schema/catalog";
 import {
@@ -92,14 +93,14 @@ export default async function AdminCategoriesPage() {
                       </form>
                       <form action={deleteCategoryAction}>
                         <input type="hidden" name="id" value={c.id} />
-                        <button
-                          type="submit"
+                        <ConfirmSubmit
+                          message={`Delete category "${c.name ?? c.slug}" permanently?`}
                           disabled={c.productCount > 0}
                           title={c.productCount > 0 ? "Reassign products before deleting" : "Delete"}
                           className="font-label text-xs uppercase tracking-[0.12em] text-on-error-container hover:underline disabled:opacity-40 disabled:no-underline disabled:hover:no-underline"
                         >
                           Delete
-                        </button>
+                        </ConfirmSubmit>
                       </form>
                     </div>
                   </Td>
