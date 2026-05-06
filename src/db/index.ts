@@ -8,7 +8,16 @@ declare global {
   var __pg: ReturnType<typeof postgres> | undefined;
 }
 
-const url = process.env.DATABASE_URL;
+// During `next build`, Next evaluates route modules to collect page data —
+// before runtime env vars exist. postgres-js is lazy (no socket opens until
+// first query), so a placeholder URL lets the build complete; at runtime we
+// require a real DATABASE_URL.
+const url =
+  process.env.DATABASE_URL ??
+  (process.env.NEXT_PHASE === "phase-production-build"
+    ? "postgres://build:build@localhost:5432/build"
+    : undefined);
+
 if (!url) throw new Error("DATABASE_URL is not set");
 
 const client =
