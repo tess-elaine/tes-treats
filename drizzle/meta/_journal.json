@@ -43,6 +43,13 @@
       "when": 1777500000000,
       "tag": "0005_order_item_set_null",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1778197387225,
+      "tag": "0006_cookie_boxes",
+      "breakpoints": true
     }
   ]
 }
