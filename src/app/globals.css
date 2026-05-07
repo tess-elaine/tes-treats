@@ -263,3 +263,147 @@
 /* Ingredient chip — hand-dropped with slight rotation. */
 @utility chip-tilt-left  { transform: rotate(-2deg); }
 @utility chip-tilt-right { transform: rotate(2deg); }
+
+/* ===========================================================================
+   Button Bite Marks — "The Artisanal Crumb" system
+
+   Bites are cream-colored <span> elements overlaid on the button's top-right
+   corner to simulate a cookie bite. No mask-image = no pixel fringe.
+
+   --bite-bg cascades automatically from parent containers via the rules below.
+   Defaults to var(--color-surface). The biteColor prop is an escape hatch for
+   unusual cases where the cascade doesn't reach.
+
+   Position math (radii in px, center from right edge / from top):
+     bite-1: rx=22 ry=10  cx=W-8  cy=-1  → right:-14  top:-11  w:44  h:20
+     bite-2: rx=16 ry=7   cx=W-34 cy=3   → right: 18  top: -4  w:32  h:14
+     bite-3: rx=13 ry=7   cx=W+2  cy=9   → right:-15  top:  2  w:26  h:14 (hover)
+
+   sm variant (size="md" buttons) scales each bite to ~80%:
+     bite-1-sm: 36×16  right:-10  top:-9
+     bite-2-sm: 26×12  right: 21  top:-6
+     bite-3-sm: 20×10  right:-12  top: 3
+
+   See /src/app/(site)/lab/bites/page.tsx for the interactive workbench.
+   =========================================================================== */
+
+/* ---- --bite-bg cascade — set on containers so children inherit automatically.
+   CSS custom properties cascade, so any BiteButton inside one of these gets the
+   right background without needing the biteColor prop. ----------------------- */
+
+.bg-surface-container-lowest { --bite-bg: var(--color-surface-container-lowest); }
+.bg-surface-container-low    { --bite-bg: var(--color-surface-container-low); }
+.bg-surface-container        { --bite-bg: var(--color-surface-container); }
+.bg-surface-container-high   { --bite-bg: var(--color-surface-container-high); }
+.bg-surface-container-highest{ --bite-bg: var(--color-surface-container-highest); }
+.bg-primary                  { --bite-bg: var(--color-primary); }
+.bg-secondary                { --bite-bg: var(--color-secondary); }
+.bg-secondary-container      { --bite-bg: var(--color-secondary-container); }
+
+/* ---- Bite overlay --------------------------------------------------------- */
+
+.btn-bite {
+  position: absolute;
+  background: var(--bite-bg, var(--color-surface));
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* lg size — default, used by size="lg" BiteButton */
+.btn-bite-1 { width: 44px; height: 20px; top: -11px; right: -14px; }
+.btn-bite-2 { width: 32px; height: 14px; top:  -4px; right:  18px; }
+.btn-bite-3 {
+  width: 26px; height: 14px; top: 2px; right: -15px;
+  opacity: 0;
+  transform: scale(0);
+  transform-origin: right center;
+  transition: opacity 0.25s ease-out, transform 0.3s ease-out;
+}
+
+/* sm size — used by size="md" BiteButton */
+.btn-bite-1-sm { width: 36px; height: 16px; top:  -9px; right: -10px; }
+.btn-bite-2-sm { width: 26px; height: 12px; top:  -6px; right:  21px; }
+.btn-bite-3-sm {
+  width: 20px; height: 10px; top: 3px; right: -12px;
+  opacity: 0;
+  transform: scale(0);
+  transform-origin: right center;
+  transition: opacity 0.25s ease-out, transform 0.3s ease-out;
+}
+
+/* Show bite-3 when hovered */
+.btn-bitten:hover .btn-bite-3,
+.btn-bitten:hover .btn-bite-3-sm {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ---- Chomp animation ------------------------------------------------------ */
+
+.btn-bitten {
+  transform-origin: 80% 30%;
+  will-change: transform;
+}
+.btn-bitten:hover { animation: bite-chomp 0.55s ease-out; }
+
+@keyframes bite-chomp {
+  0%   { transform: rotate(0deg)    scale(1); }
+  10%  { transform: rotate(-1.8deg) scale(1.04); }
+  22%  { transform: rotate(-1deg)   scale(1.025); }
+  45%  { transform: rotate(1deg)    scale(0.99); }
+  68%  { transform: rotate(-0.4deg) scale(1.003); }
+  100% { transform: rotate(0deg)    scale(1); }
+}
+
+/* ---- Crumbs --------------------------------------------------------------- */
+/* Freeform globule shapes; fan around the bite cluster:
+   1, 4 → toward bite-2 (upper-left)
+   2    → straight up
+   3, 5 → toward bite-3 (lower-right) */
+
+.btn-crumb {
+  position: absolute;
+  /* --crumb-color / --crumb-alt are set per-variant in BiteButton so crumbs
+     match the button's own color, not the page background. */
+  background: var(--crumb-color, var(--color-primary));
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+  top: 2px;
+  right: 10px;
+  transform: translate(var(--cx, 0px), var(--cy, -10px));
+  transition: opacity 0.5s ease-out;
+}
+
+.btn-crumb-1 { width: 5px; height: 4px; --cx: -6px; --cy: -10px;
+  border-radius: 60% 40% 55% 45% / 50% 60% 40% 55%; }
+.btn-crumb-2 { width: 4px; height: 5px; --cx:  4px; --cy: -14px;
+  background: var(--crumb-alt, var(--color-secondary));
+  border-radius: 45% 55% 60% 40% / 60% 35% 65% 40%; }
+.btn-crumb-3 { width: 3px; height: 3px; --cx: 14px; --cy:   5px;
+  border-radius: 70% 30% 45% 55% / 40% 65% 35% 60%; }
+.btn-crumb-4 { width: 4px; height: 3px; --cx: -3px; --cy:  -7px;
+  background: var(--crumb-alt, var(--color-secondary));
+  border-radius: 40% 60% 70% 30% / 55% 45% 55% 45%; }
+.btn-crumb-5 { width: 3px; height: 4px; --cx: 18px; --cy:   2px;
+  border-radius: 55% 45% 40% 60% / 65% 35% 60% 40%; }
+
+@keyframes bite-crumb-fly {
+  0%   { opacity: 0; transform: translate(0px, 0px); }
+  25%  { opacity: 1; }
+  100% { opacity: 1; transform: translate(var(--cx), var(--cy)); }
+}
+
+.btn-bitten:hover .btn-crumb {
+  animation: bite-crumb-fly 0.55s ease-out forwards;
+  opacity: 1;
+}
+.btn-bitten:hover .btn-crumb-1 { animation-delay: 0s;    }
+.btn-bitten:hover .btn-crumb-2 { animation-delay: 0.04s; }
+.btn-bitten:hover .btn-crumb-3 { animation-delay: 0.09s; }
+.btn-bitten:hover .btn-crumb-4 { animation-delay: 0.14s; }
+.btn-bitten:hover .btn-crumb-5 { animation-delay: 0.18s; }
+
+
+
