@@ -124,6 +124,10 @@
   /* Buttons are interactive — always show a pointer. */
   button, [role="button"] { cursor: pointer; }
 
+  /* File input "Choose files" button (browser-native, needs its own rule). */
+  input[type="file"]::file-selector-button,
+  input[type="file"]::-webkit-file-upload-button { cursor: pointer; }
+
   /* Selection in toasted sugar */
   ::selection {
     background: var(--color-secondary-container);
@@ -407,6 +411,7 @@
 .btn-bitten:hover .btn-crumb-3 { animation-delay: 0.09s; }
 .btn-bitten:hover .btn-crumb-4 { animation-delay: 0.14s; }
 .btn-bitten:hover .btn-crumb-5 { animation-delay: 0.18s; }
+
 
 
 
