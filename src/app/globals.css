@@ -121,6 +121,9 @@
     letter-spacing: -0.01em;
   }
 
+  /* Buttons are interactive — always show a pointer. */
+  button, [role="button"] { cursor: pointer; }
+
   /* Selection in toasted sugar */
   ::selection {
     background: var(--color-secondary-container);
@@ -404,6 +407,7 @@
 .btn-bitten:hover .btn-crumb-3 { animation-delay: 0.09s; }
 .btn-bitten:hover .btn-crumb-4 { animation-delay: 0.14s; }
 .btn-bitten:hover .btn-crumb-5 { animation-delay: 0.18s; }
+
 
 
 
