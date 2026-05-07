@@ -4,10 +4,9 @@
  *
  * What it seeds:
  *   1. site_config singleton (Tess's current address; her delivery zones).
- *   2. ~12 months of pre-populated US holidays (Tess can hide/remove later).
- *   3. A few sample products with variants (delete in admin if Tess doesn't sell them).
- *   4. A sample upcoming drop tied to the next holiday so the homepage has
- *      something live to link to during dev.
+ *   2. A few sample products with variants (delete in admin if Tess doesn't sell them).
+ *   3. A sample "Mother's Day Box" cookie box with 3 cookies.
+ *   4. A sample upcoming drop tied to that box so the homepage has something live.
  *
  * Memory anchor: Tess is at 746 Lafayette Ave, Buffalo NY (moving in a few
  * months). Address must come from site_config, never hardcoded elsewhere.
@@ -16,7 +15,8 @@ import bcrypt from "bcryptjs";
 import { db } from "./index";
 import {
   siteConfig,
-  holidays,
+  cookieBoxes,
+  cookieBoxItems,
   products,
   productVariants,
   productCategories,
@@ -64,36 +64,7 @@ async function main() {
   console.log("  ✓ site_config");
 
   // -----------------------------------------------------------------------
-  // 2. Holidays — next 12 months from "today" (2026-04-28).
-  //    Tess can hide or rename in admin; she can add custom drops too.
-  // -----------------------------------------------------------------------
-  const seedHolidays: { name: string; date: string }[] = [
-    { name: "Mother's Day",      date: "2026-05-10" },
-    { name: "Memorial Day",      date: "2026-05-25" },
-    { name: "Father's Day",      date: "2026-06-21" },
-    { name: "Independence Day",  date: "2026-07-04" },
-    { name: "Labor Day",         date: "2026-09-07" },
-    { name: "Halloween",         date: "2026-10-31" },
-    { name: "Thanksgiving",      date: "2026-11-26" },
-    { name: "Christmas",         date: "2026-12-25" },
-    { name: "New Year's Day",    date: "2027-01-01" },
-    { name: "Valentine's Day",   date: "2027-02-14" },
-    { name: "St. Patrick's Day", date: "2027-03-17" },
-    { name: "Easter",            date: "2027-04-04" },
-  ];
-  // Insert only if a holiday with the same (name, date) doesn't already exist.
-  for (const h of seedHolidays) {
-    const existing = await db.query.holidays.findFirst({
-      where: (t, { and, eq }) => and(eq(t.name, h.name), eq(t.date, h.date)),
-    });
-    if (!existing) {
-      await db.insert(holidays).values({ name: h.name, date: h.date, isRecurring: true });
-    }
-  }
-  console.log(`  ✓ holidays (${seedHolidays.length} pre-populated)`);
-
-  // -----------------------------------------------------------------------
-  // 3. Sample products (Tess will edit; this just makes the homepage real).
+  // 2. Sample products
   // -----------------------------------------------------------------------
   type Seed = {
     slug: string;
@@ -170,8 +141,6 @@ async function main() {
     },
   ];
 
-  // Make sure the base set of categories exists (idempotent — the
-  // 0004 migration seeds these, but a fresh DB may run the seed first).
   const baseCategories: { slug: string; name: string; sortOrder: number }[] = [
     { slug: "cookie", name: "Cookies", sortOrder: 10 },
     { slug: "pie",    name: "Pies",    sortOrder: 20 },
@@ -188,7 +157,6 @@ async function main() {
     }
   }
 
-  // Resolve slug -> id once.
   const cats = await db.query.productCategories.findMany();
   const catBySlug = new Map(cats.map((c) => [c.slug, c.id]));
 
@@ -223,62 +191,91 @@ async function main() {
   console.log(`  ✓ products (${seedProducts.length} sample products)`);
 
   // -----------------------------------------------------------------------
-  // 4. A live sample drop tied to Mother's Day 2026 — so the homepage
-  //    "current drop" CTA links to something real during dev.
+  // 3. Sample cookie box — "Mother's Day Box"
   // -----------------------------------------------------------------------
-  const mothersDay = await db.query.holidays.findFirst({
-    where: (t, { eq, and }) => and(eq(t.name, "Mother's Day"), eq(t.date, "2026-05-10")),
+  let box = await db.query.cookieBoxes.findFirst({
+    where: (t, { eq }) => eq(t.name, "Mother's Day Box"),
   });
-  if (mothersDay) {
-    const existingDrop = await db.query.drops.findFirst({
-      where: (t, { eq }) => eq(t.slug, "mothers-day-2026"),
-    });
-    if (!existingDrop) {
-      const [drop] = await db
-        .insert(drops)
-        .values({
-          holidayId: mothersDay.id,
-          slug: "mothers-day-2026",
-          name: "Mother's Day Garden Box",
-          tagline: "Five cookies that taste like spring.",
-          description:
-            "A limited drop for Mother's Day weekend. Lavender shortbread, lemon-poppy, brown-butter chocolate chip, raspberry thumbprints, and pistachio rosewater — assembled into a hand-tied box.",
-          opensAt: new Date("2026-04-28T08:00:00Z"),
-          closesAt: new Date("2026-05-08T16:00:00Z"),
-          fulfillmentStart: "2026-05-09",
-          fulfillmentEnd: "2026-05-10",
-          assortedBoxPriceCents: 4800,
-          assortedBoxInventory: 40,
-          isPublished: true,
-        })
-        .returning({ id: drops.id });
+  if (!box) {
+    const [created] = await db
+      .insert(cookieBoxes)
+      .values({
+        name: "Mother's Day Box",
+        tagline: "Five cookies that taste like spring.",
+        description:
+          "Lavender shortbread, lemon-poppy, brown-butter chocolate chip, raspberry thumbprints, and pistachio rosewater — assembled into a hand-tied box.",
+        notes: "Annual spring drop. Usually runs the week before Mother's Day.",
+      })
+      .returning({ id: cookieBoxes.id });
+    box = { id: created.id, name: "Mother's Day Box", isHidden: false, tagline: "Five cookies that taste like spring.", description: null, heroImageUrl: null, notes: null, createdAt: new Date() };
+    console.log("  ✓ Mother's Day Box created");
+  }
 
-      // Take a few products and pin them to the drop as drop items.
-      const dropProductSlugs = [
-        "lavender-shortbread",
-        "brown-butter-chocolate-chip",
-        "gooey-caramel-bites",
-      ];
-      const dropProducts = await db.query.products.findMany({
-        where: (t, { inArray }) => inArray(t.slug, dropProductSlugs),
+  // Pin sample cookies to the box (idempotent — check existing items first).
+  const existingBoxItems = await db.query.cookieBoxItems.findMany({
+    where: (t, { eq }) => eq(t.cookieBoxId, box!.id),
+  });
+  if (existingBoxItems.length === 0) {
+    const dropProductSlugs = [
+      "lavender-shortbread",
+      "brown-butter-chocolate-chip",
+      "gooey-caramel-bites",
+    ];
+    const dropProducts = await db.query.products.findMany({
+      where: (t, { inArray }) => inArray(t.slug, dropProductSlugs),
+    });
+    for (let i = 0; i < dropProducts.length; i++) {
+      await db.insert(cookieBoxItems).values({
+        cookieBoxId: box!.id,
+        productId: dropProducts[i].id,
+        sortOrder: i,
       });
-      for (let i = 0; i < dropProducts.length; i++) {
-        await db.insert(dropItems).values({
-          dropId: drop.id,
-          productId: dropProducts[i].id,
-          sortOrder: i,
-          dozenPriceCents: 2400,
-          dozenInventory: 12,
-        });
-      }
-      console.log("  ✓ Mother's Day 2026 sample drop");
     }
+    console.log("  ✓ Mother's Day Box cookies added");
+  }
+
+  // -----------------------------------------------------------------------
+  // 4. Sample drop — Mother's Day 2026
+  // -----------------------------------------------------------------------
+  const existingDrop = await db.query.drops.findFirst({
+    where: (t, { eq }) => eq(t.slug, "mothers-day-2026"),
+  });
+  if (!existingDrop) {
+    const [drop] = await db
+      .insert(drops)
+      .values({
+        cookieBoxId: box!.id,
+        slug: "mothers-day-2026",
+        name: "Mother's Day 2026",
+        opensAt: new Date("2026-04-28T08:00:00Z"),
+        closesAt: new Date("2026-05-08T16:00:00Z"),
+        fulfillmentStart: "2026-05-09",
+        fulfillmentEnd: "2026-05-10",
+        assortedBoxPriceCents: 4800,
+        assortedBoxInventory: 40,
+        isPublished: true,
+      })
+      .returning({ id: drops.id });
+
+    // Create drop_items from box items.
+    const boxItems = await db.query.cookieBoxItems.findMany({
+      where: (t, { eq }) => eq(t.cookieBoxId, box!.id),
+      orderBy: (t, { asc }) => [asc(t.sortOrder)],
+    });
+    for (const item of boxItems) {
+      await db.insert(dropItems).values({
+        dropId: drop.id,
+        cookieBoxItemId: item.id,
+        sortOrder: item.sortOrder,
+        dozenPriceCents: 2400,
+        dozenInventory: 12,
+      });
+    }
+    console.log("  ✓ Mother's Day 2026 sample drop");
   }
 
   // -----------------------------------------------------------------------
   // 5. Dev users (admin@admin.com / customer@customer.com, password "password")
-  //    Skipped in production so prod migrations don't accidentally seed test
-  //    accounts. Idempotent on email uniqueness.
   // -----------------------------------------------------------------------
   if (process.env.NODE_ENV !== "production") {
     const devUsers: { email: string; name: string; role: "admin" | "customer" }[] = [
@@ -291,7 +288,6 @@ async function main() {
         where: (t, { eq }) => eq(t.email, u.email),
       });
       if (existing) {
-        // Make sure password & role stay correct if seed is re-run.
         await db
           .update(users)
           .set({ passwordHash, role: u.role, name: u.name, emailVerified: new Date() })

@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminDropsPage() {
   const list = await db.query.drops.findMany({
     orderBy: (t, { desc }) => [desc(t.opensAt)],
+    with: { cookieBox: { columns: { name: true } } },
   });
 
   return (
@@ -17,7 +18,7 @@ export default async function AdminDropsPage() {
       <header className="flex items-end justify-between">
         <div>
           <p className="font-label uppercase tracking-[0.2em] text-on-secondary-container">
-            Holiday drops
+            Treat drops
           </p>
           <h1 className="mt-2 font-headline text-4xl font-extrabold text-primary md:text-5xl">
             Drops
@@ -36,6 +37,7 @@ export default async function AdminDropsPage() {
             <thead className="bg-surface-container-low">
               <tr>
                 <Th>Name</Th>
+                <Th>Box</Th>
                 <Th>Opens</Th>
                 <Th>Closes</Th>
                 <Th>Box price</Th>
@@ -47,9 +49,19 @@ export default async function AdminDropsPage() {
               {list.map((d) => (
                 <tr key={d.id} className="border-t border-outline-variant/15">
                   <Td>
-                    <Link href={`/admin/drops/${d.id}`} className="font-medium text-primary hover:underline">
+                    <Link
+                      href={`/admin/drops/${d.id}`}
+                      className="font-medium text-primary hover:underline"
+                    >
                       {d.name}
                     </Link>
+                  </Td>
+                  <Td>
+                    {d.cookieBox ? (
+                      <span className="text-sm text-on-surface-variant">{d.cookieBox.name}</span>
+                    ) : (
+                      <span className="text-sm text-on-surface-variant/50">—</span>
+                    )}
                   </Td>
                   <Td>{formatDate(d.opensAt)}</Td>
                   <Td>{formatDate(d.closesAt)}</Td>
@@ -71,7 +83,11 @@ export default async function AdminDropsPage() {
 }
 
 function Th({ children }: { children: React.ReactNode }) {
-  return <th className="px-4 py-3 font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant">{children}</th>;
+  return (
+    <th className="px-4 py-3 font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant">
+      {children}
+    </th>
+  );
 }
 function Td({ children }: { children: React.ReactNode }) {
   return <td className="px-4 py-3 align-top">{children}</td>;

@@ -7,7 +7,7 @@ import { getCartCount } from "@/lib/cart";
 const NAV: { label: string; href: string }[] = [
   { label: "Home", href: "/" },
   { label: "Shop", href: "/shop" },
-  { label: "Holiday Drops", href: "/drops" },
+  { label: "Treat Drops", href: "/drops" },
   { label: "Custom Requests", href: "/custom" },
   { label: "Our Story", href: "/about" },
 ];

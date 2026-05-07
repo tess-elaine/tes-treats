@@ -23,7 +23,7 @@ export default async function NotifyMePage({
             We&rsquo;ll save you a box.
           </h1>
           <p className="mt-4 text-tertiary">
-            Tess will email you the moment the next holiday drop opens for orders.
+            Tess will email you the moment the next treat drop opens for orders.
           </p>
           <div className="mt-8">
             <BiteButton href="/" size="lg">Back to the bakery</BiteButton>

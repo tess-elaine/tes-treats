@@ -3,17 +3,10 @@ import { notFound } from "next/navigation";
 import { count, isNull } from "drizzle-orm";
 import { BiteButton } from "@/components/ui/bite-button";
 import { NibbleCard } from "@/components/ui/nibble-card";
-import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { db } from "@/db";
 import { dropSubscribers } from "@/db/schema/drops";
 import { formatCents, formatDate } from "@/lib/format";
-import {
-  updateDropAction,
-  addDropItemAction,
-  updateDropItemAction,
-  deleteDropItemAction,
-  sendDropAnnouncementAction,
-} from "../actions";
+import { updateDropAction, updateDropItemAction, sendDropAnnouncementAction } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -35,19 +28,21 @@ export default async function AdminDropDetail({
   const { id } = await params;
   const { announced, error } = await searchParams;
 
-  const drop = await db.query.drops.findFirst({
-    where: (t, { eq }) => eq(t.id, id),
-  });
-  if (!drop) notFound();
-
-  const [holidays, items, allCookies, subscriberCountRow] = await Promise.all([
-    db.query.holidays.findMany({ orderBy: (t, { asc }) => [asc(t.date)] }),
-    db.query.dropItems.findMany({
-      where: (t, { eq }) => eq(t.dropId, drop.id),
-      orderBy: (t, { asc }) => [asc(t.sortOrder)],
+  const [drop, allBoxes, subscriberCount] = await Promise.all([
+    db.query.drops.findFirst({
+      where: (t, { eq }) => eq(t.id, id),
+      with: {
+        cookieBox: true,
+        items: {
+          orderBy: (t, { asc }) => [asc(t.sortOrder)],
+          with: {
+            cookieBoxItem: { with: { product: true } },
+          },
+        },
+      },
     }),
-    db.query.products.findMany({
-      where: (t, { eq }) => eq(t.isAvailable, true),
+    db.query.cookieBoxes.findMany({
+      where: (t, { eq }) => eq(t.isHidden, false),
       orderBy: (t, { asc }) => [asc(t.name)],
     }),
     db
@@ -56,10 +51,8 @@ export default async function AdminDropDetail({
       .where(isNull(dropSubscribers.unsubscribedAt))
       .then((r) => r[0]?.c ?? 0),
   ]);
-  const productIds = items.map((i) => i.productId);
-  const usedMap = new Map(productIds.map((p) => [p, true]));
-  const remainingCookies = allCookies.filter((p) => !usedMap.has(p.id));
-  const productById = new Map(allCookies.map((p) => [p.id, p]));
+
+  if (!drop) notFound();
 
   return (
     <div className="space-y-8">
@@ -76,11 +69,23 @@ export default async function AdminDropDetail({
         <h1 className="mt-2 font-headline text-3xl font-extrabold text-primary md:text-4xl">
           {drop.name}
         </h1>
+        {drop.cookieBox ? (
+          <p className="mt-1 text-sm text-on-surface-variant">
+            Box:{" "}
+            <Link
+              href={`/admin/cookie-boxes/${drop.cookieBox.id}`}
+              className="text-primary hover:underline"
+            >
+              {drop.cookieBox.name}
+            </Link>
+          </p>
+        ) : null}
       </header>
 
       {announced ? (
         <p className="rounded-md bg-secondary-container px-4 py-3 text-sm text-on-secondary-container">
-          Announcement sent to {announced} {Number(announced) === 1 ? "subscriber" : "subscribers"}.
+          Announcement sent to {announced}{" "}
+          {Number(announced) === 1 ? "subscriber" : "subscribers"}.
         </p>
       ) : null}
       {error === "already-sent" ? (
@@ -89,6 +94,7 @@ export default async function AdminDropDetail({
         </p>
       ) : null}
 
+      {/* Drop details */}
       <NibbleCard bite="none" className="p-6 md:p-10">
         <h2 className="font-headline text-xl font-bold text-primary">Drop details</h2>
         <form action={updateDropAction} className="mt-4 space-y-6">
@@ -97,30 +103,29 @@ export default async function AdminDropDetail({
             <Field name="name" label="Drop name" defaultValue={drop.name} required />
             <Field name="slug" label="URL slug" defaultValue={drop.slug} required />
           </div>
-          <Field name="tagline" label="Tagline" defaultValue={drop.tagline ?? ""} />
-          <label className="block">
-            <span className="font-label uppercase tracking-[0.12em] text-on-surface-variant">Description</span>
-            <textarea
-              name="description"
-              rows={4}
-              defaultValue={drop.description ?? ""}
-              className="ghost-border mt-1 w-full rounded-md bg-surface-container-high px-4 py-3 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
-            />
-          </label>
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block">
-              <span className="font-label uppercase tracking-[0.12em] text-on-surface-variant">Holiday</span>
+              <span className="font-label uppercase tracking-[0.12em] text-on-surface-variant">
+                Cookie box
+              </span>
               <select
-                name="holidayId"
-                defaultValue={drop.holidayId ?? ""}
+                name="cookieBoxId"
+                defaultValue={drop.cookieBoxId ?? ""}
                 className="ghost-border mt-1 w-full rounded-md bg-surface-container-high px-4 py-3 font-body"
               >
                 <option value="">— None —</option>
-                {holidays.map((h) => (
-                  <option key={h.id} value={h.id}>{h.name} · {h.date}</option>
+                {allBoxes.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
                 ))}
               </select>
+              {drop.cookieBoxId ? (
+                <p className="mt-1 text-xs text-on-surface-variant">
+                  Changing the box will reset cookie pricing for this drop.
+                </p>
+              ) : null}
             </label>
             <Field
               name="assortedBoxPriceUsd"
@@ -135,12 +140,36 @@ export default async function AdminDropDetail({
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Field name="opensAt" type="datetime-local" label="Opens at" defaultValue={toLocalIso(drop.opensAt)} required />
-            <Field name="closesAt" type="datetime-local" label="Closes at" defaultValue={toLocalIso(drop.closesAt)} required />
+            <Field
+              name="opensAt"
+              type="datetime-local"
+              label="Opens at"
+              defaultValue={toLocalIso(drop.opensAt)}
+              required
+            />
+            <Field
+              name="closesAt"
+              type="datetime-local"
+              label="Closes at"
+              defaultValue={toLocalIso(drop.closesAt)}
+              required
+            />
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <Field name="fulfillmentStart" type="date" label="Fulfillment starts" defaultValue={String(drop.fulfillmentStart)} required />
-            <Field name="fulfillmentEnd" type="date" label="Fulfillment ends" defaultValue={String(drop.fulfillmentEnd)} required />
+            <Field
+              name="fulfillmentStart"
+              type="date"
+              label="Fulfillment starts"
+              defaultValue={String(drop.fulfillmentStart)}
+              required
+            />
+            <Field
+              name="fulfillmentEnd"
+              type="date"
+              label="Fulfillment ends"
+              defaultValue={String(drop.fulfillmentEnd)}
+              required
+            />
           </div>
 
           <Field
@@ -163,82 +192,96 @@ export default async function AdminDropDetail({
         </form>
       </NibbleCard>
 
+      {/* Cookie pricing */}
+      {drop.items.length > 0 ? (
+        <NibbleCard bite="none" className="p-6 md:p-10">
+          <div className="flex flex-wrap items-baseline justify-between gap-4">
+            <h2 className="font-headline text-xl font-bold text-primary">
+              Cookie pricing for this drop
+            </h2>
+            <span className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant">
+              {drop.items.length} {drop.items.length === 1 ? "cookie" : "cookies"} from{" "}
+              {drop.cookieBox?.name ?? "the box"}
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-on-surface-variant">
+            Cookies are defined by the box. Set à la carte dozen pricing here.
+          </p>
+
+          <div className="mt-4 space-y-3">
+            {drop.items.map((item) => {
+              const p = item.cookieBoxItem.product;
+              return (
+                <form
+                  key={item.id}
+                  action={updateDropItemAction}
+                  className="grid items-end gap-3 rounded-md bg-surface-container-low p-4 sm:grid-cols-[2fr_1fr_1fr_auto]"
+                >
+                  <input type="hidden" name="id" value={item.id} />
+                  <input type="hidden" name="dropId" value={drop.id} />
+                  <div>
+                    <p className="font-medium text-on-surface">{p.name}</p>
+                    {p.shortDescription ? (
+                      <p className="text-xs text-on-surface-variant">{p.shortDescription}</p>
+                    ) : null}
+                    <p className="mt-1 text-xs text-on-surface-variant">
+                      Sold: {item.dozenSold}
+                      {item.dozenInventory != null
+                        ? ` / ${item.dozenInventory} dozen`
+                        : " (unlimited)"}
+                    </p>
+                  </div>
+                  <Field
+                    name="dozenPriceUsd"
+                    type="number"
+                    label="Dozen ($)"
+                    defaultValue={
+                      item.dozenPriceCents > 0
+                        ? (item.dozenPriceCents / 100).toFixed(2)
+                        : ""
+                    }
+                    placeholder="24.00"
+                  />
+                  <Field
+                    name="dozenInventory"
+                    type="number"
+                    label="Inventory"
+                    defaultValue={String(item.dozenInventory ?? "")}
+                  />
+                  <button
+                    type="submit"
+                    className="font-label text-xs uppercase tracking-[0.12em] text-primary hover:underline"
+                  >
+                    Save
+                  </button>
+                </form>
+              );
+            })}
+          </div>
+        </NibbleCard>
+      ) : drop.cookieBoxId ? (
+        <NibbleCard bite="none" className="p-6 md:p-10">
+          <p className="text-sm text-on-surface-variant">
+            The linked box has no cookies yet.{" "}
+            <Link
+              href={`/admin/cookie-boxes/${drop.cookieBoxId}`}
+              className="text-primary underline"
+            >
+              Add cookies to the box
+            </Link>{" "}
+            first.
+          </p>
+        </NibbleCard>
+      ) : null}
+
+      {/* Announce */}
       <NibbleCard bite="none" className="p-6 md:p-10">
         <div className="flex flex-wrap items-baseline justify-between gap-4">
           <h2 className="font-headline text-xl font-bold text-primary">
-            Cookies in this drop
+            Announce to subscribers
           </h2>
           <span className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant">
-            {items.length} {items.length === 1 ? "cookie" : "cookies"}
-          </span>
-        </div>
-
-        <div className="mt-4 space-y-3">
-          {items.map((it) => {
-            const p = productById.get(it.productId);
-            return (
-              <form
-                key={it.id}
-                action={updateDropItemAction}
-                className="grid items-end gap-3 rounded-md bg-surface-container-low p-4 sm:grid-cols-[2fr_1fr_1fr_1fr_auto_auto]"
-              >
-                <input type="hidden" name="id" value={it.id} />
-                <input type="hidden" name="dropId" value={drop.id} />
-                <div>
-                  <p className="font-label uppercase tracking-[0.12em] text-on-surface-variant">Cookie</p>
-                  <p className="mt-1 font-medium text-on-surface">{p?.name ?? "Unknown"}</p>
-                </div>
-                <Field name="dozenPriceUsd" type="number" label="Dozen ($)" defaultValue={(it.dozenPriceCents / 100).toFixed(2)} />
-                <Field name="dozenInventory" type="number" label="Inventory" defaultValue={String(it.dozenInventory ?? "")} />
-                <Field name="sortOrder" type="number" label="Sort" defaultValue={String(it.sortOrder)} />
-                <button type="submit" className="font-label text-xs uppercase tracking-[0.12em] text-primary hover:underline">
-                  Save
-                </button>
-                <DeleteForm idValue={it.id} dropId={drop.id} />
-                <p className="sm:col-span-6 text-xs text-on-surface-variant">
-                  Sold so far: {it.dozenSold}
-                  {it.dozenInventory != null ? ` / ${it.dozenInventory}` : " (unlimited)"}
-                </p>
-              </form>
-            );
-          })}
-
-          {remainingCookies.length > 0 ? (
-            <form action={addDropItemAction} className="grid items-end gap-3 rounded-md bg-surface-container-lowest p-4 sm:grid-cols-[2fr_1fr_1fr_auto]">
-              <input type="hidden" name="dropId" value={drop.id} />
-              <label className="block">
-                <span className="font-label uppercase tracking-[0.12em] text-on-surface-variant">Add a cookie</span>
-                <select
-                  name="productId"
-                  required
-                  className="ghost-border mt-1 w-full rounded-md bg-surface-container-high px-4 py-3 font-body"
-                  defaultValue=""
-                >
-                  <option value="" disabled>— Pick a cookie —</option>
-                  {remainingCookies.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </label>
-              <Field name="dozenPriceUsd" type="number" label="Dozen ($)" placeholder="24.00" required />
-              <Field name="dozenInventory" type="number" label="Inventory" placeholder="(unlimited)" />
-              <button type="submit" className="font-label text-xs uppercase tracking-[0.12em] text-primary hover:underline">
-                + Add
-              </button>
-            </form>
-          ) : items.length === 0 ? (
-            <p className="text-sm text-on-surface-variant">
-              No cookies in the catalog yet. <Link href="/admin/products/new" className="text-primary underline">Add a product</Link> first.
-            </p>
-          ) : null}
-        </div>
-      </NibbleCard>
-
-      <NibbleCard bite="none" className="p-6 md:p-10">
-        <div className="flex flex-wrap items-baseline justify-between gap-4">
-          <h2 className="font-headline text-xl font-bold text-primary">Announce to subscribers</h2>
-          <span className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant">
-            {subscriberCountRow} active {subscriberCountRow === 1 ? "subscriber" : "subscribers"}
+            {subscriberCount} active {subscriberCount === 1 ? "subscriber" : "subscribers"}
           </span>
         </div>
         <p className="mt-2 text-sm text-on-surface-variant">
@@ -257,32 +300,21 @@ export default async function AdminDropDetail({
               Send anyway (resend)
             </label>
           ) : null}
-          <BiteButton size="md" disabled={subscriberCountRow === 0}>
+          <BiteButton size="md" disabled={subscriberCount === 0}>
             {drop.announcementSentAt ? "Resend announcement" : "Send announcement"}
           </BiteButton>
         </form>
       </NibbleCard>
 
       <p className="text-sm text-on-surface-variant">
-        Public URL: <Link href={`/drops/${drop.slug}`} className="text-primary hover:underline">/drops/{drop.slug}</Link> ·
-        Opens {formatDate(drop.opensAt, { dateStyle: "long", timeStyle: "short" })} → closes {formatDate(drop.closesAt, { dateStyle: "long", timeStyle: "short" })}
+        Public URL:{" "}
+        <Link href={`/drops/${drop.slug}`} className="text-primary hover:underline">
+          /drops/{drop.slug}
+        </Link>{" "}
+        · Opens {formatDate(drop.opensAt, { dateStyle: "long", timeStyle: "short" })} → closes{" "}
+        {formatDate(drop.closesAt, { dateStyle: "long", timeStyle: "short" })}
       </p>
     </div>
-  );
-}
-
-function DeleteForm({ idValue, dropId }: { idValue: string; dropId: string }) {
-  return (
-    <form action={deleteDropItemAction}>
-      <input type="hidden" name="id" value={idValue} />
-      <input type="hidden" name="dropId" value={dropId} />
-      <ConfirmSubmit
-        message="Remove this cookie from the drop?"
-        className="font-label text-xs uppercase tracking-[0.12em] text-on-error-container hover:underline"
-      >
-        Remove
-      </ConfirmSubmit>
-    </form>
   );
 }
 
@@ -304,7 +336,9 @@ function Field({
   const isMoney = name.endsWith("Usd");
   return (
     <label className="block">
-      <span className="font-label uppercase tracking-[0.12em] text-on-surface-variant">{label}</span>
+      <span className="font-label uppercase tracking-[0.12em] text-on-surface-variant">
+        {label}
+      </span>
       <input
         name={name}
         type={type}

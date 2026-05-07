@@ -19,7 +19,7 @@ export default function TermsPage() {
           </p>
           <ul className="list-disc space-y-2 pl-6">
             <li>
-              Orders are confirmed when payment goes through. If a holiday drop
+              Orders are confirmed when payment goes through. If a treat drop
               sells out, anything else in your cart is still honored.
             </li>
             <li>

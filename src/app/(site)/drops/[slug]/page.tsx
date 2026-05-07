@@ -17,10 +17,11 @@ export async function generateMetadata({
   const { slug } = await params;
   const drop = await db.query.drops.findFirst({
     where: (t, { eq }) => eq(t.slug, slug),
-    columns: { name: true, tagline: true },
+    columns: { name: true },
+    with: { cookieBox: { columns: { tagline: true } } },
   });
   if (!drop) return { title: "Drop not found" };
-  return { title: drop.name, description: drop.tagline ?? undefined };
+  return { title: drop.name, description: drop.cookieBox?.tagline ?? undefined };
 }
 
 export default async function DropPage({
@@ -31,25 +32,24 @@ export default async function DropPage({
   const { slug } = await params;
   const drop = await db.query.drops.findFirst({
     where: (t, { eq }) => eq(t.slug, slug),
+    with: {
+      cookieBox: true,
+      items: {
+        orderBy: (t, { asc }) => [asc(t.sortOrder)],
+        with: {
+          cookieBoxItem: { with: { product: true } },
+        },
+      },
+    },
   });
   if (!drop || !drop.isPublished) notFound();
 
   const phase = phaseOf(drop);
   const isOpen = phase === "open";
-
-  const dropLineItems = await db.query.dropItems.findMany({
-    where: (t, { eq }) => eq(t.dropId, drop.id),
-    orderBy: (t, { asc }) => [asc(t.sortOrder)],
-  });
-  const productIds = dropLineItems.map((d) => d.productId);
-  const productRows = productIds.length
-    ? await db.query.products.findMany({
-        where: (t, { inArray }) => inArray(t.id, productIds),
-      })
-    : [];
-  const productMap = new Map(productRows.map((p) => [p.id, p]));
-
   const boxRemaining = inventoryRemaining(drop.assortedBoxInventory, drop.assortedBoxSold);
+
+  const tagline = drop.cookieBox?.tagline ?? null;
+  const description = drop.cookieBox?.description ?? null;
 
   return (
     <section className="px-6 py-section">
@@ -73,11 +73,11 @@ export default async function DropPage({
             <h1 className="mt-2 font-headline text-4xl font-extrabold leading-tight text-primary md:text-6xl">
               {drop.name}
             </h1>
-            {drop.tagline ? (
-              <p className="mt-4 font-body text-lg text-tertiary">{drop.tagline}</p>
+            {tagline ? (
+              <p className="mt-4 font-body text-lg text-tertiary">{tagline}</p>
             ) : null}
-            {drop.description ? (
-              <p className="mt-6 font-body text-on-surface">{drop.description}</p>
+            {description ? (
+              <p className="mt-6 font-body text-on-surface">{description}</p>
             ) : null}
             <p className="mt-6 text-sm text-on-surface-variant">
               Fulfillment: {formatDate(drop.fulfillmentStart)} —{" "}
@@ -100,7 +100,7 @@ export default async function DropPage({
                   Assorted Box
                 </h2>
                 <p className="mt-2 text-tertiary">
-                  All {dropLineItems.length} cookies, hand-packed.
+                  All {drop.items.length} cookies, hand-packed.
                 </p>
                 {boxRemaining != null ? (
                   <p className="mt-3 text-sm text-on-surface-variant">
@@ -138,59 +138,57 @@ export default async function DropPage({
         ) : null}
 
         {/* Cookies in this box */}
-        <h3 className="mt-16 font-headline text-2xl font-bold text-primary">
-          Or grab a dozen of just one
-        </h3>
-        <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {dropLineItems.map((di) => {
-            const p = productMap.get(di.productId);
-            const remaining = inventoryRemaining(di.dozenInventory, di.dozenSold);
-            return (
-              <NibbleCard key={di.id} className="flex h-full flex-col">
-                <div className="aspect-[4/3] bg-gradient-to-br from-primary-fixed to-secondary-container" />
-                <div className="flex flex-1 flex-col p-6">
-                  <h4 className="font-headline text-xl font-bold text-primary">
-                    {p?.name ?? "Cookie"}
-                  </h4>
-                  {p?.shortDescription ? (
-                    <p className="mt-2 text-sm text-tertiary">{p.shortDescription}</p>
-                  ) : null}
-                  <div className="mt-auto flex items-end justify-between pt-6">
-                    <div>
-                      <p className="font-label uppercase tracking-[0.12em] text-on-surface-variant">
-                        Dozen
-                      </p>
-                      <p className="font-headline text-2xl font-bold text-on-surface">
-                        {formatCents(di.dozenPriceCents)}
-                      </p>
-                      {remaining != null ? (
-                        <p className="text-xs text-on-surface-variant">
-                          {remaining > 0 ? `${remaining} left` : "Sold out"}
-                        </p>
+        {drop.items.length > 0 ? (
+          <>
+            <h3 className="mt-16 font-headline text-2xl font-bold text-primary">
+              Or grab a dozen of just one
+            </h3>
+            <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {drop.items.map((di) => {
+                const p = di.cookieBoxItem.product;
+                const remaining = inventoryRemaining(di.dozenInventory, di.dozenSold);
+                return (
+                  <NibbleCard key={di.id} className="flex h-full flex-col">
+                    <div className="aspect-[4/3] bg-gradient-to-br from-primary-fixed to-secondary-container" />
+                    <div className="flex flex-1 flex-col p-6">
+                      <h4 className="font-headline text-xl font-bold text-primary">{p.name}</h4>
+                      {p.shortDescription ? (
+                        <p className="mt-2 text-sm text-tertiary">{p.shortDescription}</p>
                       ) : null}
+                      <div className="mt-auto flex items-end justify-between pt-6">
+                        <div>
+                          <p className="font-label uppercase tracking-[0.12em] text-on-surface-variant">
+                            Dozen
+                          </p>
+                          <p className="font-headline text-2xl font-bold text-on-surface">
+                            {formatCents(di.dozenPriceCents)}
+                          </p>
+                          {remaining != null ? (
+                            <p className="text-xs text-on-surface-variant">
+                              {remaining > 0 ? `${remaining} left` : "Sold out"}
+                            </p>
+                          ) : null}
+                        </div>
+                        <form action={addToCartAction}>
+                          <input type="hidden" name="kind" value="drop_dozen" />
+                          <input type="hidden" name="dropItemId" value={di.id} />
+                          <input type="hidden" name="quantity" value={1} />
+                          <BiteButton
+                            size="md"
+                            variant="secondary"
+                            disabled={!isOpen || remaining === 0}
+                          >
+                            {!isOpen ? "—" : remaining === 0 ? "Sold out" : "Add dozen"}
+                          </BiteButton>
+                        </form>
+                      </div>
                     </div>
-                    <form action={addToCartAction}>
-                      <input type="hidden" name="kind" value="drop_dozen" />
-                      <input type="hidden" name="dropItemId" value={di.id} />
-                      <input type="hidden" name="quantity" value={1} />
-                      <BiteButton
-                        size="md"
-                        variant="secondary"
-                        disabled={!isOpen || remaining === 0}
-                      >
-                        {!isOpen
-                          ? "—"
-                          : remaining === 0
-                            ? "Sold out"
-                            : "Add dozen"}
-                      </BiteButton>
-                    </form>
-                  </div>
-                </div>
-              </NibbleCard>
-            );
-          })}
-        </div>
+                  </NibbleCard>
+                );
+              })}
+            </div>
+          </>
+        ) : null}
       </div>
     </section>
   );

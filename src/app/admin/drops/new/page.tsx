@@ -8,15 +8,11 @@ export const metadata = { title: "Admin · New drop" };
 export const dynamic = "force-dynamic";
 
 export default async function NewDropPage() {
-  const [holidays, products] = await Promise.all([
-    db.query.holidays.findMany({
-      orderBy: (t, { asc }) => [asc(t.date)],
-    }),
-    db.query.products.findMany({
-      where: (t, { eq }) => eq(t.isAvailable, true),
-      orderBy: (t, { asc }) => [asc(t.name)],
-    }),
-  ]);
+  const boxes = await db.query.cookieBoxes.findMany({
+    where: (t, { eq }) => eq(t.isHidden, false),
+    orderBy: (t, { asc }) => [asc(t.name)],
+    with: { items: { with: { product: true }, orderBy: (t, { asc }) => [asc(t.sortOrder)] } },
+  });
 
   return (
     <div className="space-y-8">
@@ -31,42 +27,45 @@ export default async function NewDropPage() {
           New drop
         </h1>
         <p className="mt-2 text-tertiary">
-          Build a holiday box: pick the cookies, set the open/close dates, choose
-          inventory.
+          Pick a cookie box, set the dates and pricing. Cookies are inherited from the box.
         </p>
       </header>
 
       <NibbleCard bite="none" className="p-6 md:p-10">
         <form action={createDropAction} className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
-            <Field name="name" label="Drop name" placeholder="Mother's Day Garden Box" required />
+            <Field name="name" label="Drop name" placeholder="Mother's Day 2026" required />
             <Field name="slug" label="URL slug" placeholder="mothers-day-2026" required />
           </div>
-          <Field name="tagline" label="Short tagline" placeholder="Five cookies that taste like spring." />
-          <label className="block">
-            <span className="font-label uppercase tracking-[0.12em] text-on-surface-variant">Description</span>
-            <textarea
-              name="description"
-              rows={4}
-              className="ghost-border mt-1 w-full rounded-md bg-surface-container-high px-4 py-3 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
-            />
-          </label>
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block">
-              <span className="font-label uppercase tracking-[0.12em] text-on-surface-variant">Holiday (optional)</span>
+              <span className="font-label uppercase tracking-[0.12em] text-on-surface-variant">
+                Cookie box
+              </span>
               <select
-                name="holidayId"
+                name="cookieBoxId"
                 className="ghost-border mt-1 w-full rounded-md bg-surface-container-high px-4 py-3 font-body"
                 defaultValue=""
               >
-                <option value="">— None —</option>
-                {holidays.map((h) => (
-                  <option key={h.id} value={h.id}>
-                    {h.name} · {h.date}
+                <option value="">— None (add cookies manually after) —</option>
+                {boxes.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                    {b.items.length > 0
+                      ? ` · ${b.items.map((i) => i.product.name).join(", ")}`
+                      : " · no cookies yet"}
                   </option>
                 ))}
               </select>
+              {boxes.length === 0 ? (
+                <p className="mt-1 text-xs text-on-surface-variant">
+                  No boxes yet.{" "}
+                  <Link href="/admin/cookie-boxes/new" className="text-primary underline">
+                    Create one first.
+                  </Link>
+                </p>
+              ) : null}
             </label>
             <Field
               name="assortedBoxPriceUsd"
@@ -86,44 +85,19 @@ export default async function NewDropPage() {
             <Field name="fulfillmentEnd" type="date" label="Fulfillment window ends" required />
           </div>
 
-          <Field
-            name="assortedBoxInventory"
-            type="number"
-            label="Box inventory (leave blank for unlimited)"
-          />
-
-          <fieldset>
-            <legend className="font-label uppercase tracking-[0.12em] text-on-surface-variant">
-              Cookies in this box (3–5 recommended)
-            </legend>
-            <p className="mt-1 text-xs text-on-surface-variant">
-              Pick which cookies are in the assorted box AND can be bought by-the-dozen from this drop.
-            </p>
-            <div className="mt-3 grid gap-2 md:grid-cols-2">
-              {products.map((p) => (
-                <label key={p.id} className="flex items-start gap-3 rounded-md bg-surface-container-high p-3">
-                  <input
-                    type="checkbox"
-                    name="dropItemProductIds"
-                    value={p.id}
-                    className="mt-1 h-4 w-4 accent-primary"
-                  />
-                  <div className="flex-1">
-                    <p className="font-medium text-on-surface">{p.name}</p>
-                    {p.shortDescription ? (
-                      <p className="text-xs text-on-surface-variant">{p.shortDescription}</p>
-                    ) : null}
-                  </div>
-                </label>
-              ))}
-            </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field
+              name="assortedBoxInventory"
+              type="number"
+              label="Box inventory (blank = unlimited)"
+            />
             <Field
               name="defaultDozenPriceUsd"
               type="number"
-              label="Default dozen price for each ($)"
+              label="Default dozen price for each cookie ($)"
               placeholder="24.00"
             />
-          </fieldset>
+          </div>
 
           <label className="flex items-center gap-3">
             <input type="checkbox" name="isPublished" defaultChecked className="h-4 w-4 accent-primary" />
@@ -132,7 +106,10 @@ export default async function NewDropPage() {
 
           <div className="flex gap-3">
             <BiteButton size="lg">Create drop</BiteButton>
-            <Link href="/admin/drops" className="self-center font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant hover:text-primary">
+            <Link
+              href="/admin/drops"
+              className="self-center font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant hover:text-primary"
+            >
               Cancel
             </Link>
           </div>
@@ -157,7 +134,6 @@ function Field({
   placeholder?: string;
   defaultValue?: string;
 }) {
-  // Money fields use 2-decimal precision so admins type "48.00" not "4800".
   const isMoney = name.endsWith("Usd");
   return (
     <label className="block">

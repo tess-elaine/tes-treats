@@ -1,23 +1,36 @@
 /**
  * Drop selection helpers — used by /drops, /drops/[slug], and the homepage.
  *
- * "Active" = published AND now is before closesAt (i.e. still purchasable
- * or about to open). Once closesAt passes, a drop is hidden from public
- * listings; admin can still see it.
+ * "Active" = published AND closesAt is still in the future.
+ * "Past"   = published AND closesAt has passed.
  */
-import { and, asc, eq, gt } from "drizzle-orm";
+import { and, asc, desc, eq, gt, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { drops } from "@/db/schema/drops";
 
+const withBox = {
+  cookieBox: { columns: { tagline: true, description: true, heroImageUrl: true, name: true } },
+} as const;
+
 export type ActiveDropRow = Awaited<ReturnType<typeof activeDrops>>[number];
+export type PastDropRow = Awaited<ReturnType<typeof pastDrops>>[number];
 
 export async function activeDrops() {
   const now = new Date();
-  return db
-    .select()
-    .from(drops)
-    .where(and(eq(drops.isPublished, true), gt(drops.closesAt, now)))
-    .orderBy(asc(drops.opensAt));
+  return db.query.drops.findMany({
+    where: and(eq(drops.isPublished, true), gt(drops.closesAt, now)),
+    orderBy: [asc(drops.opensAt)],
+    with: withBox,
+  });
+}
+
+export async function pastDrops() {
+  const now = new Date();
+  return db.query.drops.findMany({
+    where: and(eq(drops.isPublished, true), lte(drops.closesAt, now)),
+    orderBy: [desc(drops.closesAt)],
+    with: withBox,
+  });
 }
 
 export async function nextDrop() {
@@ -37,6 +50,6 @@ export function inventoryRemaining(
   total: number | null | undefined,
   sold: number,
 ): number | null {
-  if (total == null) return null; // unlimited
+  if (total == null) return null;
   return Math.max(0, total - sold);
 }

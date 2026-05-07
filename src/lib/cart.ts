@@ -26,6 +26,7 @@ import {
   productImages,
   drops,
   dropItems,
+  cookieBoxItems,
 } from "@/db/schema";
 
 export type LineKey =
@@ -266,7 +267,6 @@ async function resolve(rawLines: RawLine[]): Promise<ResolvedLine[]> {
           .select({
             id: drops.id,
             name: drops.name,
-            heroImageUrl: drops.heroImageUrl,
             assortedBoxPriceCents: drops.assortedBoxPriceCents,
             isPublished: drops.isPublished,
           })
@@ -282,7 +282,8 @@ async function resolve(rawLines: RawLine[]): Promise<ResolvedLine[]> {
             productImage: productImages.url,
           })
           .from(dropItems)
-          .innerJoin(products, eq(dropItems.productId, products.id))
+          .innerJoin(cookieBoxItems, eq(dropItems.cookieBoxItemId, cookieBoxItems.id))
+          .innerJoin(products, eq(cookieBoxItems.productId, products.id))
           .leftJoin(
             productImages,
             and(
@@ -318,7 +319,7 @@ async function resolve(rawLines: RawLine[]): Promise<ResolvedLine[]> {
         ...line,
         name: `${d.name} — Assorted Box`,
         unitPriceCents: d.assortedBoxPriceCents,
-        imageUrl: d.heroImageUrl,
+        imageUrl: null,
         lineId: lineIdOf(line),
       });
     } else {

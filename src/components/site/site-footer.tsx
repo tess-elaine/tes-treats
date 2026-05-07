@@ -13,7 +13,7 @@ export function SiteFooter() {
         </div>
         <FooterCol title="Shop" links={[
           { label: "All Treats", href: "/shop" },
-          { label: "Holiday Drops", href: "/drops" },
+          { label: "Treat Drops", href: "/drops" },
           { label: "Custom Requests", href: "/custom" },
         ]} />
         <FooterCol title="About" links={[

@@ -24,7 +24,7 @@ export default function SignUpForm() {
           Create your account.
         </h1>
         <p className="mt-3 text-tertiary">
-          One account works for catalog orders, holiday drops, and custom requests.
+          One account works for catalog orders, treat drops, and custom requests.
         </p>
 
         {state.error ? (

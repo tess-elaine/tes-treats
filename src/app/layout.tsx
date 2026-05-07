@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     template: "%s · TES Treats",
   },
   description:
-    "Small-batch cookies, pies, and seasonal holiday cookie boxes baked in Buffalo, NY by Tess Elaine Smith.",
+    "Small-batch cookies, pies, and seasonal treat boxes baked in Buffalo, NY by Tess Elaine Smith.",
 };
 
 /**

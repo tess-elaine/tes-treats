@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { drops, dropItems, dropSubscribers } from "@/db/schema/drops";
-import { products } from "@/db/schema/catalog";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { sendEmail } from "@/lib/email";
 
@@ -17,7 +16,6 @@ function nullableInt(v: FormDataEntryValue | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Reads a "12.34" dollar field and returns 1234 cents (or null when blank). */
 function dollarsToCents(v: FormDataEntryValue | null): number | null {
   if (v == null) return null;
   const s = String(v).trim();
@@ -31,11 +29,28 @@ function s(v: FormDataEntryValue | null) {
   return String(v ?? "").trim();
 }
 
+/** Creates drop_items for every cookie in the selected box. */
+async function seedDropItems(dropId: string, cookieBoxId: string, defaultDozenCents: number) {
+  const boxItems = await db.query.cookieBoxItems.findMany({
+    where: (t, { eq }) => eq(t.cookieBoxId, cookieBoxId),
+    orderBy: (t, { asc }) => [asc(t.sortOrder)],
+  });
+  for (const item of boxItems) {
+    await db.insert(dropItems).values({
+      dropId,
+      cookieBoxItemId: item.id,
+      sortOrder: item.sortOrder,
+      dozenPriceCents: defaultDozenCents,
+    });
+  }
+}
+
 export async function createDropAction(formData: FormData) {
   await requireAdmin();
 
   const name = s(formData.get("name"));
   const slug = s(formData.get("slug"));
+  const cookieBoxId = s(formData.get("cookieBoxId")) || null;
   if (!name || !slug) return;
 
   const opensAt = new Date(s(formData.get("opensAt")));
@@ -49,9 +64,7 @@ export async function createDropAction(formData: FormData) {
     .values({
       name,
       slug,
-      tagline: s(formData.get("tagline")) || null,
-      description: s(formData.get("description")) || null,
-      holidayId: s(formData.get("holidayId")) || null,
+      cookieBoxId,
       opensAt,
       closesAt,
       fulfillmentStart,
@@ -62,40 +75,53 @@ export async function createDropAction(formData: FormData) {
     })
     .returning({ id: drops.id });
 
-  // Create drop_items for each chosen product, all sharing the default dozen price.
-  const productIds = formData.getAll("dropItemProductIds").map(String);
-  const defaultDozen = dollarsToCents(formData.get("defaultDozenPriceUsd")) ?? 2400;
-  for (let i = 0; i < productIds.length; i++) {
-    await db.insert(dropItems).values({
-      dropId: created.id,
-      productId: productIds[i],
-      sortOrder: i,
-      dozenPriceCents: defaultDozen,
-    });
+  if (cookieBoxId) {
+    const defaultDozen = dollarsToCents(formData.get("defaultDozenPriceUsd")) ?? 0;
+    await seedDropItems(created.id, cookieBoxId, defaultDozen);
   }
 
   revalidatePath("/admin/drops");
   redirect(`/admin/drops/${created.id}`);
 }
 
-export async function addDropItemAction(formData: FormData) {
+export async function updateDropAction(formData: FormData) {
   await requireAdmin();
-  const dropId = s(formData.get("dropId"));
-  const productId = s(formData.get("productId"));
-  const dozenPriceCents = dollarsToCents(formData.get("dozenPriceUsd"));
-  if (!dropId || !productId || dozenPriceCents == null) return;
+  const id = s(formData.get("id"));
+  if (!id) return;
 
-  const existing = await db.query.dropItems.findMany({
-    where: (t, { eq }) => eq(t.dropId, dropId),
+  const newBoxId = s(formData.get("cookieBoxId")) || null;
+
+  const current = await db.query.drops.findFirst({
+    where: (t, { eq }) => eq(t.id, id),
+    columns: { cookieBoxId: true },
   });
-  await db.insert(dropItems).values({
-    dropId,
-    productId,
-    dozenPriceCents,
-    dozenInventory: nullableInt(formData.get("dozenInventory")),
-    sortOrder: existing.length,
-  });
-  revalidatePath(`/admin/drops/${dropId}`);
+
+  await db
+    .update(drops)
+    .set({
+      name: s(formData.get("name")) || undefined,
+      slug: s(formData.get("slug")) || undefined,
+      cookieBoxId: newBoxId,
+      opensAt: new Date(s(formData.get("opensAt"))),
+      closesAt: new Date(s(formData.get("closesAt"))),
+      fulfillmentStart: s(formData.get("fulfillmentStart")),
+      fulfillmentEnd: s(formData.get("fulfillmentEnd")),
+      assortedBoxPriceCents: dollarsToCents(formData.get("assortedBoxPriceUsd")),
+      assortedBoxInventory: nullableInt(formData.get("assortedBoxInventory")),
+      isPublished: formData.get("isPublished") === "on",
+      updatedAt: new Date(),
+    })
+    .where(eq(drops.id, id));
+
+  // If the box changed, regenerate drop_items from the new box.
+  if (newBoxId && newBoxId !== current?.cookieBoxId) {
+    await db.delete(dropItems).where(eq(dropItems.dropId, id));
+    await seedDropItems(id, newBoxId, 0);
+  }
+
+  revalidatePath(`/admin/drops/${id}`);
+  revalidatePath("/admin/drops");
+  redirect(`/admin/drops/${id}`);
 }
 
 export async function updateDropItemAction(formData: FormData) {
@@ -109,18 +135,8 @@ export async function updateDropItemAction(formData: FormData) {
     .set({
       dozenPriceCents,
       dozenInventory: nullableInt(formData.get("dozenInventory")),
-      sortOrder: nullableInt(formData.get("sortOrder")) ?? 0,
     })
     .where(eq(dropItems.id, id));
-  if (dropId) revalidatePath(`/admin/drops/${dropId}`);
-}
-
-export async function deleteDropItemAction(formData: FormData) {
-  await requireAdmin();
-  const id = s(formData.get("id"));
-  const dropId = s(formData.get("dropId"));
-  if (!id) return;
-  await db.delete(dropItems).where(eq(dropItems.id, id));
   if (dropId) revalidatePath(`/admin/drops/${dropId}`);
 }
 
@@ -132,6 +148,7 @@ export async function sendDropAnnouncementAction(formData: FormData) {
 
   const drop = await db.query.drops.findFirst({
     where: (t, { eq }) => eq(t.id, dropId),
+    with: { cookieBox: true },
   });
   if (!drop) return;
   if (drop.announcementSentAt && !force) {
@@ -143,14 +160,16 @@ export async function sendDropAnnouncementAction(formData: FormData) {
     .from(dropSubscribers)
     .where(isNull(dropSubscribers.unsubscribedAt));
 
+  const tagline = drop.cookieBox?.tagline ?? "";
+  const description = drop.cookieBox?.description ?? "";
   const baseUrl = process.env.AUTH_URL ?? "http://localhost:3000";
   const subject = `TES Treats — ${drop.name} is live`;
   const html = `
     <div style="font-family:Newsreader,Georgia,serif;color:#1c1b1a;background:#fdf8f5;padding:32px;">
       <div style="max-width:520px;margin:0 auto;background:#fff;padding:32px;">
         <h1 style="font-family:Epilogue,sans-serif;color:#77553d;font-size:28px;margin:0 0 16px 0;">${drop.name}</h1>
-        ${drop.tagline ? `<p style="font-style:italic;color:#615c4e;">${drop.tagline}</p>` : ""}
-        ${drop.description ? `<p style="font-size:16px;line-height:1.6;color:#504441;white-space:pre-wrap;">${drop.description.replace(/</g, "&lt;")}</p>` : ""}
+        ${tagline ? `<p style="font-style:italic;color:#615c4e;">${tagline}</p>` : ""}
+        ${description ? `<p style="font-size:16px;line-height:1.6;color:#504441;white-space:pre-wrap;">${description.replace(/</g, "&lt;")}</p>` : ""}
         <p style="margin:24px 0;">
           <a href="${baseUrl}/drops/${drop.slug}" style="background:#77553d;color:#fff;padding:14px 24px;text-decoration:none;font-family:Epilogue,sans-serif;font-weight:700;display:inline-block;">See the box</a>
         </p>
@@ -175,33 +194,4 @@ export async function sendDropAnnouncementAction(formData: FormData) {
 
   revalidatePath(`/admin/drops/${dropId}`);
   redirect(`/admin/drops/${dropId}?announced=${sent}`);
-}
-
-export async function updateDropAction(formData: FormData) {
-  await requireAdmin();
-  const id = s(formData.get("id"));
-  if (!id) return;
-
-  await db
-    .update(drops)
-    .set({
-      name: s(formData.get("name")) || undefined,
-      slug: s(formData.get("slug")) || undefined,
-      tagline: s(formData.get("tagline")) || null,
-      description: s(formData.get("description")) || null,
-      holidayId: s(formData.get("holidayId")) || null,
-      opensAt: new Date(s(formData.get("opensAt"))),
-      closesAt: new Date(s(formData.get("closesAt"))),
-      fulfillmentStart: s(formData.get("fulfillmentStart")),
-      fulfillmentEnd: s(formData.get("fulfillmentEnd")),
-      assortedBoxPriceCents: dollarsToCents(formData.get("assortedBoxPriceUsd")),
-      assortedBoxInventory: nullableInt(formData.get("assortedBoxInventory")),
-      isPublished: formData.get("isPublished") === "on",
-      updatedAt: new Date(),
-    })
-    .where(eq(drops.id, id));
-
-  revalidatePath(`/admin/drops/${id}`);
-  revalidatePath("/admin/drops");
-  redirect(`/admin/drops/${id}`);
 }

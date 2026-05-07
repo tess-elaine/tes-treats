@@ -17,8 +17,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <nav className="mt-8 space-y-1" aria-label="Admin">
           <NavItem href="/admin" label="Dashboard" />
           <NavItem href="/admin/custom-requests" label="Custom requests" />
+          <NavItem href="/admin/cookie-boxes" label="Cookie Boxes" />
           <NavItem href="/admin/drops" label="Drops" />
-          <NavItem href="/admin/holidays" label="Holidays" />
           <NavItem href="/admin/products" label="Products" />
           <NavItem href="/admin/categories" label="Categories" />
           <NavItem href="/admin/orders" label="Orders" />

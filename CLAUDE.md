@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # TES Treats — engineering notes
 
 Greenfield Next.js commerce site for Tess Elaine Smith's home bakery. See
@@ -9,47 +13,119 @@ context (drops, custom requests, fulfillment, tax) — this file is for code onl
 - Next.js 16.2 (App Router, Turbopack default) + React 19.2 + TypeScript
 - Tailwind CSS v4 (CSS-first `@theme` config in `src/app/globals.css`)
 - Drizzle ORM + Postgres (DO Managed in prod, Docker locally)
-- Auth.js v5 (Google OAuth + Resend magic link, admin role on users.role)
+- Auth.js v5 (Google OAuth + Resend magic link + email/password, admin role on users.role)
 - Stripe Checkout (catalog/drops) + Stripe payment links (custom-request quotes)
 - Resend for transactional email
-- DO Spaces (S3) for image uploads
+- DO Spaces (S3-compatible) for image uploads — falls back to `public/uploads/` locally
 - Deployed via DO App Platform (`.do/app.yaml`, `doctl`)
 
-## Next 16 things that will bite you (read before editing)
+## Commands
+
+```bash
+npm run dev          # Turbopack dev server on :3000
+npm run build        # Production build — run this to verify no TS/compile errors
+npm run lint
+npm run db:generate  # Generate a new Drizzle migration from schema changes
+npm run db:migrate   # Apply pending migrations (drizzle-kit)
+npm run db:push      # Push schema directly (dev only, skips migration files)
+npm run db:seed      # Seed sample data (safe to re-run)
+npm run db:studio    # Drizzle Studio GUI
+```
+
+**Local DB** runs in Docker (`docker-compose.yml`):
+```bash
+docker compose up -d        # start Postgres (:5432) + Mailpit (:1025 SMTP, :8025 UI)
+docker exec -i tes_treats_pg psql -U tes -d tes_treats < drizzle/XXXX.sql  # run a migration manually
+```
+
+No test suite yet. **Always run `npm run build` after changes** to catch TypeScript errors before reporting done. Also check the running dev server visually for both the public site AND admin pages affected by the change.
+
+## Next 16 things that will bite you
 
 - **`middleware.ts` is deprecated; use `proxy.ts` with named export `proxy`.**
-  Runtime is `nodejs` only — Auth.js v5 handlers must run there. Config flags
-  renamed too (`skipMiddlewareUrlNormalize` → `skipProxyUrlNormalize`).
+  Runtime is `nodejs` only — Auth.js v5 handlers must run there.
 - **`cookies()`, `headers()`, `draftMode()`, `params`, `searchParams` are async-only.**
-  No more sync access. Always `await` them. Run `npx next typegen` to get
-  `PageProps<'/path'>` / `LayoutProps<'/path'>` / `RouteContext<'/path'>` helpers.
-- Image generators (`opengraph-image`, `icon`, `apple-icon`, `sitemap`) get
-  Promise-wrapped params now.
-- Local `next/image` with query strings requires `localPatterns` config; defaults
-  for `minimumCacheTTL`, `imageSizes`, `qualities` changed.
-- Authoritative source for any of this: `node_modules/next/dist/docs/` —
-  read it before guessing.
+  Always `await` them. Run `npx next typegen` to get `PageProps<'/path'>` helpers.
+- Image generators (`opengraph-image`, `icon`, `apple-icon`, `sitemap`) get Promise-wrapped params.
+- Local `next/image` with query strings requires `localPatterns` config.
+- Authoritative source: `node_modules/next/dist/docs/` — read it before guessing.
 
 ## Tailwind v4 things
 
-- No `tailwind.config.ts`. Theme tokens live in `src/app/globals.css` under
-  `@theme { ... }`. Adding a `--color-foo: #...` makes `bg-foo`, `text-foo`,
-  `border-foo` etc. immediately available.
-- The Artisanal Crumb tokens (cocoa primary, cream surface, Epilogue/Newsreader
-  fonts, scalloped-bite clip-path, ghost border, chocolate shadow) all live in
-  `globals.css`. Never reintroduce Tailwind 3 patterns (`@layer base` with
-  config-style declarations are fine; `tailwind.config.js` is not).
+- No `tailwind.config.ts`. Theme tokens live in `src/app/globals.css` under `@theme { ... }`.
+- Adding `--color-foo: #...` makes `bg-foo`, `text-foo`, `border-foo` etc. immediately available.
+- The Artisanal Crumb tokens (cocoa primary, cream surface, Epilogue/Newsreader fonts,
+  scalloped-bite clip-path, ghost border, chocolate shadow) all live in `globals.css`.
+
+## Architecture
+
+### Route groups
+- `src/app/(site)/` — public customer-facing site (header + footer chrome via layout)
+- `src/app/admin/` — admin panel (sidebar chrome via layout, protected by `proxy.ts`)
+- `src/app/api/` — API routes: Auth.js handler + Stripe webhook
+
+### Auth & admin protection
+- `proxy.ts` (not `middleware.ts`) guards `/admin/*` — redirects unauthenticated to `/sign-in`, non-admins to `/`.
+- Page-level: `requireAdmin()` / `requireUser()` from `lib/auth-helpers.ts` for granular control.
+- Admin role is set automatically on first sign-in for emails listed in `ADMIN_EMAILS` env var (comma-separated), via `src/lib/admin-bootstrap.ts`. No SQL needed.
+- Session strategy is JWT (required by Credentials provider). Role is baked into the token and re-hydrated from DB on `trigger === "update"`.
+
+### Database
+- Single `db` export from `src/db/index.ts` (postgres-js + Drizzle, connection reused across hot reloads via `global.__pg`).
+- Schema files in `src/db/schema/` — each domain in its own file, all re-exported from `src/db/schema/index.ts`.
+- **All money is stored in cents (integer).** Never store dollars as floats.
+- Migrations live in `drizzle/`. Run `npm run db:generate` after schema changes to produce a new migration file, then apply with `npm run db:migrate` or manually via `docker exec psql`.
+
+### Schema domains
+
+**catalog**: `product_category → product → product_variant + product_image`
+- `product.isAvailable` controls `/shop` visibility. Drop-only cookies stay `false`.
+- One `product_image` per product has `isPrimary=true` — enforced in app code, not DB constraint.
+
+**drops**: `cookie_box → cookie_box_item (3-4 cookies) → drop → drop_item`
+- `cookie_box` is the reusable curated product (name, description, tagline, hero image).
+- `cookie_box_item` defines which cookies are in the box and their display order.
+- `drop` is a timed sale of a box — has open/close timestamps, fulfillment dates, pricing, inventory.
+- `drop_item` is per-drop à la carte pricing for each cookie; auto-populated from `cookie_box_item` rows when a drop is created. Sorted by `sort_order` (denormalized from box item).
+- `drop_subscriber` — "notify me" email list, separate from user accounts.
+
+**orders**: `order → order_item` (polymorphic: variant OR drop box OR drop dozen)
+- `order_item` keeps snapshot fields (`nameSnapshot`, `unitPriceCents`) so historical orders survive catalog edits.
+- Order number format: `TT-XXXX` (auto-generated on insert).
+- Payment confirmed via Stripe webhook at `/api/webhooks/stripe` AND on the success-redirect confirmation page (belt + suspenders).
+
+**cart**: `cart → cart_item` (same polymorphic shape as order_item)
+- Signed-in users: DB-backed (`cart` table, one per user).
+- Guests: HTTP-only cookie `tt_cart` (JSON of line keys + quantities — never prices/names).
+- Merge-on-sign-in is automatic inside `getCart()`.
+
+**custom_requests**: `custom_request + custom_request_photo`
+- Workflow: `submitted → reviewing → quoted → paid → in_kitchen → fulfilled`
+- Payment via Stripe payment link (not Checkout) — Tess generates the link in admin.
+
+**site_config**: singleton row (id=1) — bakery address, pickup/delivery settings, tax toggle, delivery zones. **Tess is moving — always read address from `site_config`, never hardcode.**
+
+### Lib helpers worth knowing
+- `lib/drops.ts` — `activeDrops()`, `pastDrops()`, `nextDrop()`, `phaseOf()`, `inventoryRemaining()`
+- `lib/cart.ts` — `getCart()`, `addToCart()`, `clearCart()` — covers both cookie + DB backends
+- `lib/orders.ts` — `createPendingOrder()` — shared between checkout and webhook
+- `lib/storage.ts` — `putObject()` — S3/Spaces/local fallback; `processUploadedImage()` normalizes to WebP ≤1600px
+- `lib/stripe.ts` — `getStripe()` returns `null` when unconfigured; set `STRIPE_DISABLED=true` to force dev path
+- `lib/format.ts` — `formatCents()`, `formatDate()` — use these everywhere, never inline
+
+### Components
+- `<BiteButton>` — every primary CTA. Takes `size` (`"lg"` | `"md"`), `variant` (`"primary"` | `"secondary"` | `"ghost"`), `href` (renders as `<a>`), `biteColor` (must match parent background — see below).
+- `<NibbleCard>` — card surface. Takes `bite` prop for which corner gets the scallop (`"tr"` | `"bl"` | `"none"`).
+- `<ConfirmSubmit>` — wraps a submit button with a JS `confirm()` dialog. Used for destructive admin actions.
 
 ## Design system — "The Artisanal Crumb"
 
 Source of truth is `globals.css`. Reference Stitch project (not source of truth):
 `projects/17660998352866033967` — fetch screens via `mcp__stitch__get_screen`
-when porting layouts; the HTML in `htmlCode.downloadUrl` is the most useful
-reference.
+when porting layouts; the HTML in `htmlCode.downloadUrl` is the most useful reference.
 
 Hard rules from the design doc:
-- **No 1px solid borders for sectioning.** Use background color shifts between
-  `surface`, `surface-container-low`, `surface-container`, etc.
+- **No 1px solid borders for sectioning.** Use background color shifts between `surface`, `surface-container-low`, `surface-container`, etc.
 - **No `<hr>`.** Same reason.
 - **No pure black.** Use `on-surface` (#1c1b1a).
 - **Every primary CTA gets the bite.** Use `<BiteButton>` — the bite is built in.
@@ -84,9 +160,6 @@ different surface:
 
 // On a white card (#fff):
 <BiteButton biteColor="var(--color-surface-container-lowest)">Shop</BiteButton>
-
-// Arbitrary hex:
-<BiteButton biteColor="#f0ebe8">Shop</BiteButton>
 ```
 
 ### Size variants
@@ -97,41 +170,24 @@ different surface:
 
 Ghost variant gets no bites (transparent background = no bite to show).
 
-### Adding bites to a new element (not a button)
+## Working checklist — before marking any task done
 
-1. Add `relative overflow-visible btn-bitten` to the element.
-2. Insert bite spans inside it, before the content:
-   ```tsx
-   <div className="relative btn-bitten ...">
-     <span className="btn-bite btn-bite-1" aria-hidden />
-     <span className="btn-bite btn-bite-2" aria-hidden />
-     <span className="btn-bite btn-bite-3" aria-hidden />
-     <span className="relative z-10">content</span>
-   </div>
-   ```
-3. If the element isn't on the default surface background, pass
-   `style={{ "--bite-bg": "var(--color-surface-container)" }}`.
+1. `npm run build` passes with zero errors.
+2. Visually check the **public-facing page(s)** affected (dev server at :3000).
+3. Visually check the **admin page(s)** affected (sign in as admin@admin.com / password).
+4. Check **both desktop and mobile** nav when touching header/footer/nav.
+5. If schema changed: run the migration against the local Docker DB, then re-run the seed.
+6. Search the full codebase for any other files referencing the changed symbol/table/column — Drizzle schema changes ripple into lib helpers, server actions, AND public pages simultaneously.
 
-### Creating a new size variant
+## Copy conventions
 
-Add a new size block to the **Button Bite Marks** section in `globals.css`
-following the same position-math pattern shown in the comments there. Then
-reference the new suffix in the component (e.g. `btn-bite-1-xl`).
-
-### Interactive workbench
-
-`/src/app/(site)/lab/bites/page.tsx` is a local-only page at `/lab/bites`
-for trying new bite sizes, crumb directions, and animations. Not linked from
-any nav. The lab CSS is no longer in `globals.css` (graduated to production);
-re-add lab-prefixed classes there if you need to experiment again.
+- Public-facing: "treat drops" (not "holiday drops"). The drop section is for any time of year.
+- Bakery name: always "TES Treats" — never "Tes Treats" or "TES treats".
+- Money: always display via `formatCents()`. Never construct price strings manually.
+- Dates: always display via `formatDate()`. Accepts a `Date`, string, or `Intl.DateTimeFormatOptions` override.
 
 ## Local dev
 
-```bash
-npm run dev          # Turbopack dev server on :3000
-npm run build        # Production build
-npm run lint
-```
-
-When wiring DB/auth/Stripe, secrets live in `.env.local` (gitignored). Sample
-values come from `.env.example` (committed). Never commit real keys.
+Secrets live in `.env.local` (gitignored). Copy `.env.example` and fill in values.
+`STRIPE_DISABLED=true` lets you run checkout without real Stripe keys.
+Mailpit web UI at http://localhost:8025 catches all outbound email.

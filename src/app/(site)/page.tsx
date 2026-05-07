@@ -199,14 +199,14 @@ function NextDropSection({ drop }: { drop: Awaited<ReturnType<typeof nextDrop>> 
               ? phaseOf(drop) === "preorder"
                 ? `Opens ${formatDate(drop.opensAt)}`
                 : `Live until ${formatDate(drop.closesAt)}`
-              : "Upcoming holiday drops"}
+              : "Upcoming treat drops"}
           </p>
           <h2 className="mt-2 font-headline text-4xl font-extrabold leading-tight text-primary md:text-5xl">
-            {drop ? drop.name : "A box for every holiday — three to five cookies, one perfect bite each."}
+            {drop ? drop.name : "A curated box for every moment — three to five cookies, one perfect bite each."}
           </h2>
           <p className="mt-6 max-w-xl text-tertiary">
-            {drop?.tagline ??
-              "Each drop is limited. Grab the assorted box for a full tasting, or buy a dozen of your favorite. Once they're gone, they're gone — until the next holiday rolls around."}
+            {drop?.cookieBox?.tagline ??
+              "Each drop is limited. Grab the assorted box for a full tasting, or buy a dozen of your favorite. Once they're gone, they're gone."}
           </p>
           <div className="mt-8 flex flex-wrap gap-4">
             {drop ? (
@@ -278,7 +278,7 @@ function NibblerListSection() {
               Join the secret nibbler list.
             </h2>
             <p className="mt-3 font-body text-on-primary">
-              Get a heads-up before each holiday drop goes live. No spam, just sweet news.
+              Get a heads-up before each treat drop goes live. No spam, just sweet news.
             </p>
           </div>
           <form action={subscribeAction} className="flex gap-2">
