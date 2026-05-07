@@ -191,3 +191,19 @@ Ghost variant gets no bites (transparent background = no bite to show).
 Secrets live in `.env.local` (gitignored). Copy `.env.example` and fill in values.
 `STRIPE_DISABLED=true` lets you run checkout without real Stripe keys.
 Mailpit web UI at http://localhost:8025 catches all outbound email.
+
+### GitHub
+
+- Remote: `https://github.com/tess-elaine/tes-treats.git`
+- Username: `tess-elaine`
+- Auth token: stored in `.env.local` as `GITHUB_AUTH`
+- To push: `git push https://tess-elaine:$GITHUB_AUTH@github.com/tess-elaine/tes-treats.git main`
+
+### Dev server restarts
+
+After replacing static files in `public/` (images, fonts, etc.), always:
+1. Kill the running dev server (`pkill -f "next dev"`)
+2. Clear the Next.js image cache (`rm -rf .next/cache/images`)
+3. Restart it (`npm run dev > /tmp/next-dev.log 2>&1 &`)
+
+Static file swaps are not picked up by Turbopack hot reload — a full restart is required.
