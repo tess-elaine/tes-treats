@@ -318,8 +318,8 @@
 }
 
 /* lg size — default, used by size="lg" BiteButton */
-.btn-bite-1 { width: 44px; height: 20px; top: -11px; right: -14px; }
-.btn-bite-2 { width: 32px; height: 14px; top:  -4px; right:  18px; }
+.btn-bite-1 { width: 44px; height: 22px; top: -11px; right: -18px; }
+.btn-bite-2 { width: 24px; height:  8px; top:  -4px; right:  12px; }
 .btn-bite-3 {
   width: 26px; height: 14px; top: 2px; right: -15px;
   opacity: 0;
