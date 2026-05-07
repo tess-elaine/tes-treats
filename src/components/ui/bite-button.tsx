@@ -56,10 +56,13 @@ export function BiteButton(props: AsLink | AsButton) {
 
   /* Crumbs are cookie bits from the button itself — they should match the
      button's background color, not the page background. */
+  /* Crumbs are cookie bits from the button — match the button bg.
+     For primary: dark chocolate + medium chocolate.
+     For secondary: medium tan + light tan (darker first so they show on any bg). */
   const crumbColors: Record<Variant, { color: string; alt: string }> = {
-    primary:   { color: "var(--color-primary)",            alt: "var(--color-primary-container)" },
-    secondary: { color: "var(--color-secondary-container)", alt: "var(--color-secondary)" },
-    ghost:     { color: "var(--color-primary)",            alt: "var(--color-secondary)" },
+    primary:   { color: "var(--color-primary)",           alt: "var(--color-primary-container)" },
+    secondary: { color: "var(--color-secondary)",          alt: "var(--color-secondary-container)" },
+    ghost:     { color: "var(--color-primary)",           alt: "var(--color-secondary)" },
   };
   const { color: crumbColor, alt: crumbAlt } = crumbColors[variant];
 

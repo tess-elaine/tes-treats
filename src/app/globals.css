@@ -288,17 +288,17 @@
    =========================================================================== */
 
 /* ---- --bite-bg cascade — set on containers so children inherit automatically.
-   CSS custom properties cascade, so any BiteButton inside one of these gets the
-   right background without needing the biteColor prop. ----------------------- */
+   :not(.btn-bitten) ensures the rule never fires on the button itself (which
+   also carries a bg-* class), only on parent containers. -------------------- */
 
-.bg-surface-container-lowest { --bite-bg: var(--color-surface-container-lowest); }
-.bg-surface-container-low    { --bite-bg: var(--color-surface-container-low); }
-.bg-surface-container        { --bite-bg: var(--color-surface-container); }
-.bg-surface-container-high   { --bite-bg: var(--color-surface-container-high); }
-.bg-surface-container-highest{ --bite-bg: var(--color-surface-container-highest); }
-.bg-primary                  { --bite-bg: var(--color-primary); }
-.bg-secondary                { --bite-bg: var(--color-secondary); }
-.bg-secondary-container      { --bite-bg: var(--color-secondary-container); }
+.bg-surface-container-lowest:not(.btn-bitten) { --bite-bg: var(--color-surface-container-lowest); }
+.bg-surface-container-low:not(.btn-bitten)    { --bite-bg: var(--color-surface-container-low); }
+.bg-surface-container:not(.btn-bitten)        { --bite-bg: var(--color-surface-container); }
+.bg-surface-container-high:not(.btn-bitten)   { --bite-bg: var(--color-surface-container-high); }
+.bg-surface-container-highest:not(.btn-bitten){ --bite-bg: var(--color-surface-container-highest); }
+.bg-primary:not(.btn-bitten)                  { --bite-bg: var(--color-primary); }
+.bg-secondary:not(.btn-bitten)                { --bite-bg: var(--color-secondary); }
+.bg-secondary-container:not(.btn-bitten)      { --bite-bg: var(--color-secondary-container); }
 
 /* ---- Bite overlay --------------------------------------------------------- */
 
@@ -404,6 +404,7 @@
 .btn-bitten:hover .btn-crumb-3 { animation-delay: 0.09s; }
 .btn-bitten:hover .btn-crumb-4 { animation-delay: 0.14s; }
 .btn-bitten:hover .btn-crumb-5 { animation-delay: 0.18s; }
+
 
 
 
