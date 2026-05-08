@@ -63,7 +63,7 @@ function Hero() {
             Buffalo&rsquo;s sweetest secret
           </p>
           <h1 className="mt-4 font-headline text-5xl font-black leading-[1.05] tracking-tight text-primary md:text-6xl">
-            Every treat baked with <em className="text-secondary">someone</em> in mind.
+            Every treat baked with <em className="text-secondary">you</em> in mind.
           </h1>
           <p className="mt-6 max-w-xl font-body text-lg text-tertiary">
             Sugar, flour, and a little mixing power. Tess bakes every treat from scratch,
@@ -204,7 +204,7 @@ function NextDropSection({ drop }: { drop: Awaited<ReturnType<typeof nextDrop>> 
               </h2>
               <p className="mt-6 max-w-xl text-tertiary">
                 {drop.cookieBox?.tagline ??
-                  "Each drop is limited. Grab the assorted box for a full tasting, or buy a dozen of your favorite. Get &lsquo;em before they&rsquo;re gone."}
+                  "Each drop is limited. Grab the assorted box for a full tasting, or buy a dozen of your favorite. Get &lsquo;em before they&rsquo;re gone!"}
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <BiteButton href={`/drops/${drop.slug}`} size="lg">See the box</BiteButton>
@@ -232,7 +232,7 @@ function NextDropSection({ drop }: { drop: Awaited<ReturnType<typeof nextDrop>> 
               A curated box every month. Four kinds of cookies, a new lineup every time.
             </h2>
             <p className="mt-6 text-tertiary">
-              Each drop is limited. Grab the assorted box for a full tasting, or buy a dozen of your favorite. Get &lsquo;em before they&rsquo;re gone.
+              Each drop is limited. Grab the assorted box for a full tasting, or buy a dozen of your favorite. Get &lsquo;em before they&rsquo;re gone!
             </p>
             <div className="mt-8">
               <BiteButton href="/drops/notify" size="lg">
