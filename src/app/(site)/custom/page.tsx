@@ -100,7 +100,7 @@ export default async function CustomPage({
                   name="description"
                   rows={6}
                   required
-                  placeholder="Flavors, colors, theme, dietary needs, anything you've seen and loved..."
+                  placeholder="Birthday, baby shower, just because..."
                   className="ghost-border mt-2 w-full rounded-md bg-surface-container-high px-4 py-3 font-body text-on-surface placeholder:text-on-surface-variant focus:bg-primary-fixed focus:outline-none"
                 />
               </label>
