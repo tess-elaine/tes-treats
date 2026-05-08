@@ -85,7 +85,7 @@ function Hero() {
         </div>
 
         <div className="relative">
-          <div className="scalloped-bite relative aspect-square overflow-hidden shadow-chocolate-lg">
+          <div className="relative aspect-square overflow-hidden rounded-2xl shadow-chocolate-lg">
             <Image
               src="/brand/hero-1.webp"
               alt="TES Treats brand mark — a cream cookie with a bite taken out"
@@ -213,7 +213,7 @@ function NextDropSection({ drop }: { drop: Awaited<ReturnType<typeof nextDrop>> 
                 </BiteButton>
               </div>
             </div>
-            <div className="scalloped-bite relative aspect-[4/3] overflow-hidden shadow-chocolate-lg">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl shadow-chocolate-lg">
               <Image
                 src="/brand/cookie-box-drop.jpg"
                 alt="A TES Treats cookie box"
@@ -274,7 +274,7 @@ function AboutTeaser() {
         <div className="relative md:justify-self-end">
           <NibbleCard className="aspect-[4/5] w-full max-w-md rotate-[-2deg] bg-gradient-to-br from-secondary-container to-primary-fixed-dim shadow-chocolate-lg" />
           <div
-            className="absolute -bottom-8 -right-4 -z-0 aspect-square w-2/3 rotate-3 bg-secondary-container scalloped-bite"
+            className="absolute -bottom-8 -right-4 -z-0 aspect-square w-2/3 rotate-3 rounded-2xl bg-secondary-container"
             aria-hidden
           />
         </div>

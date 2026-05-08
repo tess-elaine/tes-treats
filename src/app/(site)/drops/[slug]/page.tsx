@@ -85,7 +85,7 @@ export default async function DropPage({
             </p>
           </div>
 
-          <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-tertiary-fixed via-primary-fixed to-secondary-container scalloped-bite shadow-chocolate-lg" />
+          <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-gradient-to-br from-tertiary-fixed via-primary-fixed to-secondary-container shadow-chocolate-lg" />
         </header>
 
         {/* Assorted box CTA */}

@@ -4,10 +4,10 @@ import { cn } from "@/lib/cn";
 export type BitePosition = "tr" | "tl" | "br" | "bl" | "none";
 
 const BITE_CLASS: Record<BitePosition, string> = {
-  tr: "scalloped-bite",
-  tl: "scalloped-bite-tl",
-  br: "scalloped-bite-br",
-  bl: "scalloped-bite-bl",
+  tr: "rounded-lg",
+  tl: "rounded-lg",
+  br: "rounded-lg",
+  bl: "rounded-lg",
   none: "rounded-lg",
 };
 

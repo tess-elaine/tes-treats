@@ -62,7 +62,7 @@ export function ProfileDropdown({ user }: Props) {
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 z-50 mt-2 w-64 origin-top-right scalloped-bite-sm rounded-lg bg-surface-container-lowest shadow-chocolate-lg"
+          className="absolute right-0 z-50 mt-2 w-64 origin-top-right rounded-lg bg-surface-container-lowest shadow-chocolate-lg"
         >
           <div className="px-5 py-4">
             <p className="font-label uppercase tracking-[0.12em] text-on-surface-variant text-xs">

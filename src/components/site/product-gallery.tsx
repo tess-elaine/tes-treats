@@ -16,7 +16,7 @@ export function ProductGallery({
 
   if (images.length === 0) {
     return (
-      <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-secondary-container via-primary-fixed to-tertiary-fixed scalloped-bite shadow-chocolate-lg" />
+      <div className="relative aspect-square overflow-hidden rounded-2xl bg-gradient-to-br from-secondary-container via-primary-fixed to-tertiary-fixed shadow-chocolate-lg" />
     );
   }
 
@@ -26,7 +26,7 @@ export function ProductGallery({
 
   return (
     <div className="space-y-3">
-      <div className="relative aspect-square overflow-hidden scalloped-bite shadow-chocolate-lg">
+      <div className="relative aspect-square overflow-hidden rounded-2xl shadow-chocolate-lg">
         <Image
           key={current.id}
           src={current.url}

@@ -34,7 +34,7 @@ export default async function CartPage() {
             <ul className="space-y-4">
               {cart.lines.map((line) => (
                 <NibbleCard key={line.lineId} bite="none" className="flex gap-4 p-4">
-                  <div className="relative aspect-square w-24 shrink-0 overflow-hidden bg-secondary-container scalloped-bite">
+                  <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-lg bg-secondary-container">
                     {line.imageUrl ? (
                       <Image
                         src={line.imageUrl}
