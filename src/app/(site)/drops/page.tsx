@@ -17,11 +17,11 @@ export default async function DropsPage() {
           Limited treat drops
         </p>
         <h1 className="mt-2 font-headline text-4xl font-extrabold text-primary md:text-6xl">
-          A box for every moment.
+          A curated box every month.
         </h1>
         <p className="mt-4 max-w-2xl text-tertiary">
-          Three to five cookies, baked together for one weekend only. Buy the assorted box, or grab
-          a dozen of just your favorite — each drop sells out and disappears.
+          Four kinds of cookies, a new lineup every time. Grab the assorted box for a full
+          tasting, or buy a dozen of your favorite. Get &lsquo;em before they&rsquo;re gone!
         </p>
 
         {active.length === 0 ? (
