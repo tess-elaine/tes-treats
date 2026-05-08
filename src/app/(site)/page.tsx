@@ -87,7 +87,7 @@ function Hero() {
         <div className="relative">
           <div className="scalloped-bite relative aspect-square overflow-hidden shadow-chocolate-lg">
             <Image
-              src="/brand/hero-1.jpg"
+              src="/brand/hero-1.webp"
               alt="TES Treats brand mark — a cream cookie with a bite taken out"
               fill
               priority
