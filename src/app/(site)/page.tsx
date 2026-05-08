@@ -60,15 +60,14 @@ function Hero() {
       <div className="mx-auto grid max-w-7xl items-center gap-12 md:grid-cols-2">
         <div className="relative z-10">
           <p className="font-label uppercase tracking-[0.2em] text-on-secondary-container">
-            Hand-finished in Buffalo, NY
+            Buffalo&rsquo;s sweetest secret
           </p>
           <h1 className="mt-4 font-headline text-5xl font-black leading-[1.05] tracking-tight text-primary md:text-7xl">
-            Treats with a <em className="not-italic text-secondary">tender</em> crumb,
-            baked the slow way.
+            Every batch is made with someone in mind.
           </h1>
           <p className="mt-6 max-w-xl font-body text-lg text-tertiary">
-            Small-batch cookies, pies, and seasonal cookie boxes from Tess Elaine Smith.
-            Order online for local pickup or delivery, or commission something just for you.
+            Sugar, flour, and a little mixing power. Tess bakes every small-batch cookie
+            from scratch — and somehow, they always taste like they were made just for you.
           </p>
 
           <div className="mt-10 flex flex-wrap gap-4">
