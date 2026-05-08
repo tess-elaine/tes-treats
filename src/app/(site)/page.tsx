@@ -191,38 +191,57 @@ function FeaturedSection({
 function NextDropSection({ drop }: { drop: Awaited<ReturnType<typeof nextDrop>> }) {
   return (
     <section className="px-6 py-section">
-      <div className="mx-auto grid max-w-7xl items-center gap-12 md:grid-cols-[5fr_6fr]">
-        <NibbleCard className="aspect-[4/5] bg-gradient-to-br from-tertiary-fixed via-primary-fixed to-secondary-container" />
-        <div>
-          <p className="font-label uppercase tracking-[0.2em] text-on-secondary-container">
-            {drop
-              ? phaseOf(drop) === "preorder"
-                ? `Opens ${formatDate(drop.opensAt)}`
-                : `Live until ${formatDate(drop.closesAt)}`
-              : "Upcoming treat drops"}
-          </p>
-          <h2 className="mt-2 font-headline text-4xl font-extrabold leading-tight text-primary md:text-5xl">
-            {drop ? drop.name : "A curated box for every moment — three to five cookies, one perfect bite each."}
-          </h2>
-          <p className="mt-6 max-w-xl text-tertiary">
-            {drop?.cookieBox?.tagline ??
-              "Each drop is limited. Grab the assorted box for a full tasting, or buy a dozen of your favorite. Once they're gone, they're gone."}
-          </p>
-          <div className="mt-8 flex flex-wrap gap-4">
-            {drop ? (
-              <>
+      <div className="mx-auto max-w-7xl">
+        {drop ? (
+          <div className="grid items-center gap-12 md:grid-cols-[5fr_6fr]">
+            <div>
+              <p className="font-label uppercase tracking-[0.2em] text-on-secondary-container">
+                {phaseOf(drop) === "preorder"
+                  ? `Opens ${formatDate(drop.opensAt)}`
+                  : `Live until ${formatDate(drop.closesAt)}`}
+              </p>
+              <h2 className="mt-2 font-headline text-4xl font-extrabold leading-tight text-primary md:text-5xl">
+                {drop.name}
+              </h2>
+              <p className="mt-6 max-w-xl text-tertiary">
+                {drop.cookieBox?.tagline ??
+                  "Each drop is limited. Grab the assorted box for a full tasting, or buy a dozen of your favorite. Once they're gone, they're gone."}
+              </p>
+              <div className="mt-8 flex flex-wrap gap-4">
                 <BiteButton href={`/drops/${drop.slug}`} size="lg">See the box</BiteButton>
                 <BiteButton href="/drops/notify" variant="secondary" size="lg">
                   Notify me of the next one
                 </BiteButton>
-              </>
-            ) : (
+              </div>
+            </div>
+            <div className="scalloped-bite relative aspect-[4/3] overflow-hidden shadow-chocolate-lg">
+              <Image
+                src="/brand/cookie-box-drop.jpg"
+                alt="A TES Treats cookie box"
+                fill
+                sizes="(min-width: 768px) 55vw, 100vw"
+                className="object-cover object-center"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="font-label uppercase tracking-[0.2em] text-on-secondary-container">
+              Upcoming treat drops
+            </p>
+            <h2 className="mt-2 font-headline text-4xl font-extrabold leading-tight text-primary md:text-5xl">
+              A curated box for every moment — three to five cookies, one perfect bite each.
+            </h2>
+            <p className="mt-6 text-tertiary">
+              Each drop is limited. Grab the assorted box for a full tasting, or buy a dozen of your favorite. Once they're gone, they're gone.
+            </p>
+            <div className="mt-8">
               <BiteButton href="/drops/notify" size="lg">
                 Notify me about the next drop
               </BiteButton>
-            )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );
