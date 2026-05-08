@@ -67,7 +67,7 @@ function Hero() {
           </h1>
           <p className="mt-6 max-w-xl font-body text-lg text-tertiary">
             Sugar, flour, and a little mixing power. Tess bakes every treat from scratch,
-            and somehow they always taste like they were made just for you.
+            and they always taste like they were made just for you.
           </p>
 
           <div className="mt-10 flex flex-wrap gap-4">
@@ -204,7 +204,7 @@ function NextDropSection({ drop }: { drop: Awaited<ReturnType<typeof nextDrop>> 
               </h2>
               <p className="mt-6 max-w-xl text-tertiary">
                 {drop.cookieBox?.tagline ??
-                  "Each drop is limited. Grab the assorted box for a full tasting, or buy a dozen of your favorite. Once they're gone, they're gone."}
+                  "Each drop is limited. Grab the assorted box for a full tasting, or buy a dozen of your favorite. Get &lsquo;em before they&rsquo;re gone."}
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <BiteButton href={`/drops/${drop.slug}`} size="lg">See the box</BiteButton>
@@ -229,10 +229,10 @@ function NextDropSection({ drop }: { drop: Awaited<ReturnType<typeof nextDrop>> 
               Upcoming treat drops
             </p>
             <h2 className="mt-2 font-headline text-4xl font-extrabold leading-tight text-primary md:text-5xl">
-              A curated box for every moment — three to five cookies, one perfect bite each.
+              A curated box every month. Four kinds of cookies, a new lineup every time.
             </h2>
             <p className="mt-6 text-tertiary">
-              Each drop is limited. Grab the assorted box for a full tasting, or buy a dozen of your favorite. Once they're gone, they're gone.
+              Each drop is limited. Grab the assorted box for a full tasting, or buy a dozen of your favorite. Get &lsquo;em before they&rsquo;re gone.
             </p>
             <div className="mt-8">
               <BiteButton href="/drops/notify" size="lg">
