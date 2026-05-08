@@ -271,12 +271,27 @@ function AboutTeaser() {
             </BiteButton>
           </div>
         </div>
-        <div className="relative md:justify-self-end">
-          <NibbleCard className="aspect-[4/5] w-full max-w-md rotate-[-2deg] bg-gradient-to-br from-secondary-container to-primary-fixed-dim shadow-chocolate-lg" />
-          <div
-            className="absolute -bottom-8 -right-4 -z-0 aspect-square w-2/3 rotate-3 rounded-2xl bg-secondary-container"
-            aria-hidden
-          />
+        <div className="relative pb-10 pr-10">
+          <div className="rotate-[-2deg] overflow-hidden rounded-2xl shadow-chocolate-lg">
+            <Image
+              src="/brand/tess-about.webp"
+              alt="Tess Elaine Smith"
+              width={480}
+              height={600}
+              sizes="(min-width: 768px) 40vw, 100vw"
+              className="w-full h-auto object-cover object-top"
+            />
+          </div>
+          <div className="absolute bottom-0 right-0 w-40 rotate-[3deg] overflow-hidden rounded-xl shadow-chocolate-lg">
+            <Image
+              src="/brand/tess-cookie-box.webp"
+              alt="Tess holding a TES Treats cookie box"
+              width={160}
+              height={213}
+              sizes="160px"
+              className="w-full h-auto object-cover"
+            />
+          </div>
         </div>
       </div>
     </section>
