@@ -82,7 +82,6 @@ function Hero() {
             <IngredientChip tilt="left">Baked fresh</IngredientChip>
             <IngredientChip tilt="right">Made with love</IngredientChip>
             <IngredientChip tilt="left">Worth every bite</IngredientChip>
-            <IngredientChip tilt="right">Something for everyone</IngredientChip>
           </ul>
         </div>
 
