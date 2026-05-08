@@ -62,12 +62,12 @@ function Hero() {
           <p className="font-label uppercase tracking-[0.2em] text-on-secondary-container">
             Buffalo&rsquo;s sweetest secret
           </p>
-          <h1 className="mt-4 font-headline text-5xl font-black leading-[1.05] tracking-tight text-primary md:text-7xl">
-            Every batch is made with someone in mind.
+          <h1 className="mt-4 font-headline text-5xl font-black leading-[1.05] tracking-tight text-primary md:text-6xl">
+            Every treat baked with <em className="text-secondary">someone</em> in mind.
           </h1>
           <p className="mt-6 max-w-xl font-body text-lg text-tertiary">
-            Sugar, flour, and a little mixing power. Tess bakes every small-batch cookie
-            from scratch — and somehow, they always taste like they were made just for you.
+            Sugar, flour, and a little mixing power. Tess bakes every treat from scratch,
+            and somehow they always taste like they were made just for you.
           </p>
 
           <div className="mt-10 flex flex-wrap gap-4">
