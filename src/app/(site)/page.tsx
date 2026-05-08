@@ -79,9 +79,10 @@ function Hero() {
           </div>
 
           <ul className="mt-8 flex flex-wrap gap-2">
-            <IngredientChip tilt="left">European Butter</IngredientChip>
-            <IngredientChip tilt="right">Real Vanilla</IngredientChip>
-            <IngredientChip tilt="left">Slow-Mixed</IngredientChip>
+            <IngredientChip tilt="left">Baked fresh</IngredientChip>
+            <IngredientChip tilt="right">Made with love</IngredientChip>
+            <IngredientChip tilt="left">Worth every bite</IngredientChip>
+            <IngredientChip tilt="right">Something for everyone</IngredientChip>
           </ul>
         </div>
 
