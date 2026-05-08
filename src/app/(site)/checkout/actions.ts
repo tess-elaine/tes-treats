@@ -39,7 +39,14 @@ export async function startCheckoutAction(formData: FormData) {
   }
 
   const phone = String(formData.get("phone") ?? "").trim() || undefined;
-  const customerNotes = String(formData.get("customerNotes") ?? "").trim() || undefined;
+  const pickupLocation = fulfillment === "pickup"
+    ? String(formData.get("pickupLocation") ?? "").trim() || undefined
+    : undefined;
+  const rawNotes = String(formData.get("customerNotes") ?? "").trim();
+  const customerNotes = [
+    pickupLocation ? `Pickup location: ${pickupLocation}` : null,
+    rawNotes || null,
+  ].filter(Boolean).join("\n") || undefined;
 
   let deliveryAddress: DeliveryAddress | undefined;
   let deliveryFeeCents = 0;
@@ -60,12 +67,7 @@ export async function startCheckoutAction(formData: FormData) {
       redirect("/checkout?error=address");
     }
 
-    const cfg = await db.query.siteConfig.findFirst();
-    const fee = pickDeliveryFeeCents(cfg?.deliveryZones ?? [], deliveryAddress.postalCode);
-    if (fee == null) {
-      redirect("/checkout?error=zone");
-    }
-    deliveryFeeCents = fee;
+    deliveryFeeCents = 1000; // flat $10 delivery fee
   }
 
   const order = await createPendingOrder({

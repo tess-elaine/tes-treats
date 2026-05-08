@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { formatCents } from "@/lib/format";
 import { startCheckoutAction } from "./actions";
 import { isStripeLive } from "@/lib/stripe";
+import { FulfillmentSection } from "./fulfillment-section";
 
 export const metadata = { title: "Checkout" };
 export const dynamic = "force-dynamic";
@@ -65,56 +66,12 @@ export default async function CheckoutPage({
               <h2 className="font-headline text-xl font-bold text-primary">
                 How would you like it?
               </h2>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <FulfillmentOption
-                  value="pickup"
-                  label="Pickup"
-                  detail={
-                    cfg
-                      ? `${cfg.bakeryAddress.line1}, ${cfg.bakeryAddress.city}`
-                      : "TES Treats kitchen"
-                  }
-                  defaultChecked
-                />
-                <FulfillmentOption
-                  value="delivery"
-                  label="Local delivery"
-                  detail="Tess hand-delivers in Buffalo"
+              <div className="mt-4">
+                <FulfillmentSection
+                  pickupInstructions={cfg?.pickupInstructions}
+                  deliveryZones={cfg?.deliveryZones}
                 />
               </div>
-              {cfg?.pickupInstructions ? (
-                <p className="mt-4 text-sm text-on-surface-variant">
-                  <span className="font-medium">Pickup:</span> {cfg.pickupInstructions}
-                </p>
-              ) : null}
-            </NibbleCard>
-
-            <NibbleCard bite="none" className="p-6 md:p-8">
-              <h2 className="font-headline text-xl font-bold text-primary">
-                Delivery address
-              </h2>
-              <p className="mt-1 text-sm text-on-surface-variant">
-                Skip if you&rsquo;re picking up.
-              </p>
-              <div className="mt-4 grid gap-3">
-                <Field name="line1" label="Street address" />
-                <Field name="line2" label="Apt / suite (optional)" />
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <Field name="city" label="City" defaultValue="Buffalo" />
-                  <Field name="state" label="State" defaultValue="NY" />
-                  <Field name="postalCode" label="ZIP" />
-                </div>
-                <Field name="addressNotes" label="Delivery notes (gate code, etc.)" />
-              </div>
-              {cfg?.deliveryZones?.length ? (
-                <p className="mt-4 text-xs text-on-surface-variant">
-                  Currently delivering to:{" "}
-                  {cfg.deliveryZones
-                    .map((z) => `${z.label} (${formatCents(z.feeCents)})`)
-                    .join(", ")}
-                  .
-                </p>
-              ) : null}
             </NibbleCard>
 
             <NibbleCard bite="none" className="p-6 md:p-8">
@@ -152,7 +109,7 @@ export default async function CheckoutPage({
             </ul>
             <dl className="mt-6 space-y-2 border-t border-outline-variant/15 pt-4">
               <Row label="Subtotal" value={formatCents(cart.subtotalCents)} />
-              <Row label="Delivery" value="Calculated when you submit" muted />
+              <Row label="Delivery" value="Free for pickup · $10.00 for delivery" muted />
             </dl>
             <p className="mt-4 text-xs text-on-surface-variant">
               Final total appears on the {isStripeLive() ? "Stripe checkout page" : "confirmation page"}.
