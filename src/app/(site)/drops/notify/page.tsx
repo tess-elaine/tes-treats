@@ -37,7 +37,7 @@ export default async function NotifyMePage({
     <section className="px-6 py-section">
       <NibbleCard bite="none" className="mx-auto max-w-md p-8 md:p-12">
         <p className="font-label uppercase tracking-[0.2em] text-on-secondary-container">
-          The Secret Nibbler List
+          The Goodie List
         </p>
         <h1 className="mt-2 font-headline text-3xl font-extrabold text-primary md:text-4xl">
           Get a heads-up before each drop.

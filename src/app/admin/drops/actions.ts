@@ -173,7 +173,7 @@ export async function sendDropAnnouncementAction(formData: FormData) {
         <p style="margin:24px 0;">
           <a href="${baseUrl}/drops/${drop.slug}" style="background:#77553d;color:#fff;padding:14px 24px;text-decoration:none;font-family:Epilogue,sans-serif;font-weight:700;display:inline-block;">See the box</a>
         </p>
-        <p style="font-size:12px;color:#827470;">You're getting this because you signed up for the TES Treats nibbler list.</p>
+        <p style="font-size:12px;color:#827470;">You're getting this because you signed up for TES Treats email updates.</p>
       </div>
     </div>`;
 

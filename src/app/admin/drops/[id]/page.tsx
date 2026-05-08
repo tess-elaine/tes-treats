@@ -285,7 +285,7 @@ export default async function AdminDropDetail({
           </span>
         </div>
         <p className="mt-2 text-sm text-on-surface-variant">
-          Sends a one-shot &ldquo;{drop.name} is live&rdquo; email to everyone on the nibbler list.
+          Sends a one-shot &ldquo;{drop.name} is live&rdquo; email to all email subscribers.
           {drop.announcementSentAt ? (
             <> Last sent {formatDate(drop.announcementSentAt, { dateStyle: "medium", timeStyle: "short" })}.</>
           ) : (

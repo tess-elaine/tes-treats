@@ -66,7 +66,7 @@ export default async function AdminDashboard() {
           value={activeDrops[0]?.c ?? 0}
           href="/admin/drops"
         />
-        <Stat label="Nibbler list" value={subscriberCount} href="/admin/subscribers" />
+        <Stat label="Email subscribers" value={subscriberCount} href="/admin/subscribers" />
       </section>
 
       <section className="grid gap-8 md:grid-cols-2">

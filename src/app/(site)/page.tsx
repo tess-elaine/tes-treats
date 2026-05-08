@@ -308,7 +308,7 @@ function NibblerListSection() {
         <div className="grid items-center gap-8 md:grid-cols-[3fr_2fr]">
           <div>
             <h2 className="font-headline text-3xl font-bold uppercase tracking-tighter text-on-primary md:text-4xl">
-              Join the secret nibbler list.
+              Get on the goodie list.
             </h2>
             <p className="mt-3 font-body text-on-primary">
               Get a heads-up before each treat drop goes live. No spam, just sweet news.
