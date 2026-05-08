@@ -43,7 +43,7 @@ export default function RootLayout({
       lang="en"
       className={`${epilogue.variable} ${newsreader.variable} ${jakarta.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-surface text-on-surface">{children}</body>
+      <body className="min-h-full bg-surface text-on-surface" suppressHydrationWarning>{children}</body>
     </html>
   );
 }
