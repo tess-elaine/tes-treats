@@ -58,9 +58,9 @@ export default async function CustomPage({
           Dreaming of something specific?
         </h1>
         <p className="mt-4 max-w-2xl text-tertiary">
-          Themed cookie boxes, decorated sugar cookies, dessert tables, custom
-          flavors — Tess takes on commissions when her schedule allows. Tell her what
-          you&rsquo;re imagining (photos help!) and she&rsquo;ll come back with a quote.
+          Themed cookie boxes, dessert tables, custom flavors — Tess takes on
+          commissions when her schedule allows. Tell her what you&rsquo;re imagining
+          (photos help!) and she&rsquo;ll come back with a quote.
         </p>
 
         {error && ERRORS[error] ? (
