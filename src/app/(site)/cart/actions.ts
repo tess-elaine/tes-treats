@@ -6,8 +6,13 @@ import {
   removeLine,
   updateQuantity,
   lineKeyFromId,
+  getCart,
   type RawLine,
 } from "@/lib/cart";
+
+export async function getCartAction() {
+  return getCart();
+}
 
 export async function addToCartAction(formData: FormData) {
   const kind = String(formData.get("kind") ?? "");
