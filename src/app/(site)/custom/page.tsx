@@ -89,7 +89,16 @@ export default async function CustomPage({
             <PhoneInput />
             <Field name="occasion" label="Occasion (wedding, baby shower, just because…)" />
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field name="desiredDate" type="date" label="Desired date (optional)" />
+              <label className="block">
+                <span className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant">
+                  Desired date (optional)
+                </span>
+                <input
+                  name="desiredDate"
+                  type="date"
+                  className="ghost-border mt-1 h-[50px] w-full rounded-md bg-surface-container-high px-4 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
+                />
+              </label>
               <Field name="servings" type="number" label="Approx. how many people?" />
             </div>
             <div>
@@ -162,7 +171,7 @@ function Field({
         required={required}
         defaultValue={defaultValue}
         placeholder={label}
-        className="ghost-border w-full rounded-md bg-surface-container-high px-4 py-3 font-body text-on-surface placeholder:text-on-surface-variant focus:bg-primary-fixed focus:outline-none"
+        className="ghost-border h-[50px] w-full rounded-md bg-surface-container-high px-4 font-body text-on-surface placeholder:text-on-surface-variant focus:bg-primary-fixed focus:outline-none"
       />
     </label>
   );
