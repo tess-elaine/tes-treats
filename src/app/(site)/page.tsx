@@ -304,17 +304,17 @@ function AboutTeaser() {
 function NibblerListSection() {
   return (
     <section className="px-6 py-section">
-      <NibbleCard bite="none" className="mx-auto max-w-5xl bg-primary px-8 py-16 text-on-primary md:px-16">
+      <NibbleCard bite="none" className="mx-auto max-w-5xl overflow-hidden bg-primary px-8 py-16 text-on-primary md:px-16">
         <div className="grid items-center gap-8 md:grid-cols-[3fr_2fr]">
           <div>
-            <h2 className="font-headline text-3xl font-bold uppercase tracking-tighter text-on-primary md:text-4xl">
+            <h2 className="font-headline text-2xl font-bold uppercase tracking-tighter text-on-primary md:text-4xl">
               Get on the goodie list.
             </h2>
             <p className="mt-3 font-body text-on-primary">
               Get a heads-up before each treat drop goes live. No spam, just sweet news.
             </p>
           </div>
-          <form action={subscribeAction} className="flex gap-2">
+          <form action={subscribeAction} className="flex flex-col gap-3 sm:flex-row sm:gap-2">
             <input type="hidden" name="source" value="homepage" />
             <label className="sr-only" htmlFor="email">Email</label>
             <input
@@ -325,7 +325,7 @@ function NibblerListSection() {
               placeholder="you@kitchen-table.com"
               className="ghost-border flex-1 rounded-lg bg-surface-container-high px-4 py-3 font-body text-on-surface placeholder:text-on-surface-variant focus:bg-primary-fixed focus:outline-none"
             />
-            <BiteButton size="md" variant="secondary">Subscribe</BiteButton>
+            <BiteButton size="md" variant="secondary" biteColor="var(--color-primary)">Subscribe</BiteButton>
           </form>
         </div>
       </NibbleCard>
