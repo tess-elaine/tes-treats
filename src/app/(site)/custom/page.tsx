@@ -3,6 +3,7 @@ import { BiteButton } from "@/components/ui/bite-button";
 import { NibbleCard } from "@/components/ui/nibble-card";
 import { auth } from "@/auth";
 import { submitCustomRequestAction } from "./actions";
+import { PhoneInput } from "./phone-input";
 
 export const metadata = { title: "Custom requests" };
 export const dynamic = "force-dynamic";
@@ -85,7 +86,7 @@ export default async function CustomPage({
                 required
               />
             </div>
-            <Field name="phone" type="tel" label="Phone (optional)" />
+            <PhoneInput />
             <Field name="occasion" label="Occasion (wedding, baby shower, just because…)" />
             <div className="grid gap-3 sm:grid-cols-2">
               <Field name="desiredDate" type="date" label="Desired date (optional)" />
