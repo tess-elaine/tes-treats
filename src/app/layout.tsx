@@ -22,11 +22,11 @@ const jakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: "TES Treats — Artisanal Hearth-Baked Cookies & Treats by Tess",
+    default: "TES Treats — Every treat baked with you in mind.",
     template: "%s · TES Treats",
   },
   description:
-    "Small-batch cookies, pies, and seasonal treat boxes baked in Buffalo, NY by Tess Elaine Smith.",
+    "Buffalo's sweetest secret. Homemade cookies, seasonal treat drops, and custom orders from Tess — baked fresh and made with love.",
 };
 
 /**
