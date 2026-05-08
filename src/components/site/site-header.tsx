@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Wordmark } from "./wordmark";
 import { HeaderAccountMenu } from "./header-account-menu";
 import { MobileNav } from "./mobile-nav";
@@ -26,7 +27,7 @@ export async function SiteHeader() {
         <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 py-3 md:hidden">
           <MobileNav items={NAV} />
           <div className="flex justify-center">
-            <Wordmark size={48} />
+            <NavLogo />
           </div>
           <div className="flex items-center gap-2">
             <HeaderAccountMenu />
@@ -36,7 +37,7 @@ export async function SiteHeader() {
 
         {/* Desktop (md+): logo left, nav center-ish, account+cart right */}
         <div className="hidden items-center justify-between gap-6 py-3 md:flex">
-          <Wordmark size={56} />
+          <NavLogo />
           <nav className="flex items-center gap-8" aria-label="Primary">
             {DESKTOP_NAV.map((item) => (
               <Link
@@ -74,6 +75,14 @@ function CartLink({ count }: { count: number }) {
           {count > 99 ? "99+" : count}
         </span>
       ) : null}
+    </Link>
+  );
+}
+
+function NavLogo() {
+  return (
+    <Link href="/" aria-label="TES Treats — home" className="inline-flex items-center transition-opacity hover:opacity-90">
+      <Image src="/brand/tes-nav-logo.svg" alt="TES Treats" width={154} height={40} priority style={{ height: 40, width: "auto" }} className="py-1" />
     </Link>
   );
 }

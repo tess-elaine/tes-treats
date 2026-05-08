@@ -6,7 +6,7 @@ export function SiteFooter() {
     <footer className="bg-surface-container-high mt-24">
       <div className="mx-auto grid max-w-7xl gap-12 px-6 py-16 md:grid-cols-4">
         <div className="md:col-span-2">
-          <Wordmark size={72} />
+          <Wordmark size={96} />
           <p className="mt-4 max-w-sm text-on-surface-variant">
             Sugar, flour, and a little mixing power. Tess bakes every treat from scratch, and they always taste like they were made just for you.
           </p>
