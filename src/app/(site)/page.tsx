@@ -261,9 +261,9 @@ function AboutTeaser() {
             She bakes, she boxes, she writes back. That&rsquo;s Tess.
           </h2>
           <p className="mt-6 text-tertiary">
-            TES Treats is a one-woman home bakery. Tess does the recipe development, the late-night
-            mixing, the boxing-up — all from her kitchen. If you have a custom request, she&rsquo;s
-            the one who&rsquo;ll write back.
+            TES Treats is a one-woman home bakery. Tess curates every box herself, does the
+            late-night mixing, and packs every order by hand — all from her kitchen. If you have
+            a custom request, she&rsquo;s the one who&rsquo;ll write back.
           </p>
           <div className="mt-8">
             <BiteButton href="/about" variant="secondary" size="lg">
