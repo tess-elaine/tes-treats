@@ -9,16 +9,23 @@ export function MobileNav({ items }: { items: NavItem[] }) {
   const [open, setOpen] = React.useState(false);
 
   // Lock body scroll while drawer is open + close on Escape.
+  // Uses position:fixed approach instead of overflow:hidden — iOS Safari
+  // breaks fixed overlays when overflow:hidden is set on body.
   React.useEffect(() => {
     if (!open) return;
-    const original = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const scrollY = window.scrollY;
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
     document.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = original;
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
+      window.scrollTo(0, scrollY);
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
@@ -53,7 +60,7 @@ export function MobileNav({ items }: { items: NavItem[] }) {
             type="button"
             aria-label="Close menu"
             onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-on-surface/50"
           />
           {/* Drawer */}
           <aside className="relative ml-0 flex h-full w-full max-w-sm flex-col bg-surface shadow-chocolate-lg">
