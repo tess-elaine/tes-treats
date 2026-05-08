@@ -1,13 +1,13 @@
 import { NibbleCard } from "@/components/ui/nibble-card";
 
-export const metadata = { title: "Our Story" };
+export const metadata = { title: "About Us" };
 
 export default function AboutPage() {
   return (
     <section className="px-6 py-section">
       <NibbleCard bite="tr" className="mx-auto max-w-3xl p-8 md:p-12">
         <p className="font-label uppercase tracking-[0.2em] text-on-secondary-container">
-          Our story
+          About Us
         </p>
         <h1 className="mt-2 font-headline text-3xl font-extrabold text-primary md:text-4xl">
           Hi, I&rsquo;m Tess!

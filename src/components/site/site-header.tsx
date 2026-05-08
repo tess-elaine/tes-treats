@@ -11,7 +11,7 @@ const NAV: { label: string; href: string }[] = [
   { label: "Shop", href: "/shop" },
   { label: "Treat Drops", href: "/drops" },
   { label: "Custom Requests", href: "/custom" },
-  { label: "Our Story", href: "/about" },
+  { label: "About Us", href: "/about" },
 ];
 
 // Desktop suppresses the redundant Home link (the centered logo already
