@@ -255,10 +255,10 @@ function AboutTeaser() {
       <div className="mx-auto grid max-w-7xl items-center gap-12 md:grid-cols-2">
         <div>
           <p className="font-label uppercase tracking-[0.2em] text-on-secondary-container">
-            Meet the heart behind the hearth
+            The heart behind TES Treats
           </p>
           <h2 className="mt-2 font-headline text-4xl font-extrabold leading-tight text-primary md:text-5xl">
-            Tess Elaine Smith — the baker, the boss, the whole &lsquo;TES&rsquo;.
+            She bakes, she boxes, she writes back. That&rsquo;s Tess.
           </h2>
           <p className="mt-6 text-tertiary">
             TES Treats is a one-woman home bakery. Tess does the recipe development, the late-night

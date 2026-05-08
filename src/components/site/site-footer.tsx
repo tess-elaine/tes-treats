@@ -8,7 +8,7 @@ export function SiteFooter() {
         <div className="md:col-span-2">
           <Wordmark size={72} />
           <p className="mt-4 max-w-sm text-on-surface-variant">
-            Small-batch cookies, pies, and seasonal cookie boxes — baked in Buffalo, NY by Tess Elaine Smith.
+            Sugar, flour, and a little mixing power. Tess bakes every treat from scratch, and they always taste like they were made just for you.
           </p>
         </div>
         <FooterCol title="Shop" links={[
