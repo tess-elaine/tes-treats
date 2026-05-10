@@ -69,7 +69,6 @@ export default async function RecipeEditPage({
           href={`/admin/cookbook/${productId}/${recipeId}/prep`}
           size="md"
           variant="secondary"
-          biteColor="var(--color-surface-container-lowest)"
         >
           Print prep sheet
         </BiteButton>

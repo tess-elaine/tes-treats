@@ -39,124 +39,150 @@ export function RecipeStepsClient({
     setEditContent("");
   }
 
+  function handleAdd() {
+    const content = newContent.trim();
+    if (!content) return;
+    const sortOrder = steps.length * 10;
+    setNewContent("");
+    startTransition(async () => {
+      const row = await addRecipeStepAction(recipeId, productId, content, sortOrder);
+      if (row) setSteps((l) => [...l, { id: row.id, content: row.content, sortOrder: row.sortOrder }]);
+    });
+  }
+
   return (
-    <div className="space-y-3">
-      {steps.length > 0 && (
-        <ol className="space-y-1">
-          {steps.map((step, idx) => (
-            <li
-              key={step.id}
-              draggable={editingId !== step.id}
-              onDragStart={() => { dragIdx.current = idx; }}
-              onDragOver={(e) => { e.preventDefault(); setDragOverIdx(idx); }}
-              onDrop={(e) => {
-                e.preventDefault();
-                const from = dragIdx.current;
-                if (from === null || from === idx) { setDragOverIdx(null); return; }
-                const next = [...steps];
-                const [removed] = next.splice(from, 1);
-                next.splice(idx, 0, removed);
-                setSteps(next);
-                dragIdx.current = null;
-                setDragOverIdx(null);
-                startTransition(async () => {
-                  await reorderRecipeStepsAction(recipeId, productId, next.map((s) => s.id));
-                });
-              }}
-              onDragEnd={() => { setDragOverIdx(null); dragIdx.current = null; }}
-              className={[
-                "grid grid-cols-[1rem_1.75rem_1fr_1rem] items-start gap-x-3 rounded-md px-2 py-2 transition-colors",
-                dragOverIdx === idx ? "bg-primary-fixed/40" : "hover:bg-surface-container-high/50",
-              ].filter(Boolean).join(" ")}
-            >
-              {/* Drag handle */}
-              <span
+    <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
+      {/* Step list */}
+      <div className="flex-1 min-w-0">
+        {steps.length === 0 ? (
+          <p className="text-xs text-on-surface-variant/50">No steps yet — add the first one →</p>
+        ) : (
+          <ol className="space-y-1">
+            {steps.map((step, idx) => (
+              <li
+                key={step.id}
+                draggable={editingId !== step.id}
+                onDragStart={() => { dragIdx.current = idx; }}
+                onDragOver={(e) => { e.preventDefault(); setDragOverIdx(idx); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const from = dragIdx.current;
+                  if (from === null || from === idx) { setDragOverIdx(null); return; }
+                  const next = [...steps];
+                  const [removed] = next.splice(from, 1);
+                  next.splice(idx, 0, removed);
+                  setSteps(next);
+                  dragIdx.current = null;
+                  setDragOverIdx(null);
+                  startTransition(async () => {
+                    await reorderRecipeStepsAction(recipeId, productId, next.map((s) => s.id));
+                  });
+                }}
+                onDragEnd={() => { setDragOverIdx(null); dragIdx.current = null; }}
                 className={[
-                  "pt-px select-none text-sm leading-5 text-on-surface-variant/30",
-                  editingId !== step.id ? "cursor-grab" : "cursor-default opacity-0",
-                ].join(" ")}
+                  "grid grid-cols-[1rem_1.75rem_1fr_1rem] items-baseline gap-x-3 rounded-md px-2 py-1.5 transition-colors",
+                  dragOverIdx === idx
+                    ? "bg-primary-fixed/40"
+                    : editingId === step.id
+                    ? ""
+                    : "hover:bg-surface-container-high/50",
+                ].filter(Boolean).join(" ")}
               >
-                ⠿
-              </span>
+                {/* Drag handle */}
+                <span
+                  className={[
+                    "self-start select-none text-sm text-on-surface-variant/30",
+                    editingId !== step.id ? "cursor-grab" : "cursor-default opacity-0",
+                  ].join(" ")}
+                >
+                  ⠿
+                </span>
 
-              {/* Step number */}
-              <span className="pt-px text-right font-label text-sm font-bold leading-5 text-primary tabular-nums">
-                {idx + 1}.
-              </span>
+                {/* Step number */}
+                <span className="text-right font-label text-sm font-bold text-primary tabular-nums">
+                  {idx + 1}.
+                </span>
 
-              {/* Content or editor */}
-              <div className="min-w-0">
-                {editingId === step.id ? (
-                  <div className="space-y-2">
-                    <textarea
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      rows={3}
-                      autoFocus
-                      className="ghost-border w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
-                    />
-                    <div className="flex gap-2">
-                      <BiteButton
-                        type="button"
-                        size="md"
-                        disabled={isPending || !editContent.trim()}
-                        biteColor="var(--color-surface-container-lowest)"
-                        onClick={() => {
-                          const content = editContent.trim();
-                          if (!content) return;
-                          setSteps((l) => l.map((s) => s.id === step.id ? { ...s, content } : s));
-                          cancelEdit();
-                          startTransition(async () => {
-                            await updateRecipeStepAction(step.id, productId, recipeId, content);
-                          });
-                        }}
-                      >
-                        Save
-                      </BiteButton>
-                      <BiteButton type="button" size="md" variant="ghost" onClick={cancelEdit}>
-                        Cancel
-                      </BiteButton>
+                {/* Content or editor */}
+                <div className="min-w-0">
+                  {editingId === step.id ? (
+                    <div className="space-y-2 py-1">
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        rows={3}
+                        autoFocus
+                        className="ghost-border w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
+                      />
+                      <div className="flex gap-2">
+                        <BiteButton
+                          type="button"
+                          size="md"
+                          disabled={isPending || !editContent.trim()}
+                          biteColor="var(--color-surface-container-lowest)"
+                          onClick={() => {
+                            const content = editContent.trim();
+                            if (!content) return;
+                            setSteps((l) => l.map((s) => s.id === step.id ? { ...s, content } : s));
+                            cancelEdit();
+                            startTransition(async () => {
+                              await updateRecipeStepAction(step.id, productId, recipeId, content);
+                            });
+                          }}
+                        >
+                          Save
+                        </BiteButton>
+                        <BiteButton type="button" size="md" variant="ghost" onClick={cancelEdit}>
+                          Discard
+                        </BiteButton>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <p
-                    className="cursor-text font-body text-sm leading-5 text-on-surface"
-                    onClick={() => startEdit(step)}
-                    title="Click to edit"
-                  >
-                    {step.content}
-                  </p>
-                )}
-              </div>
+                  ) : (
+                    <p
+                      className="cursor-text font-body text-sm leading-snug text-on-surface"
+                      onClick={() => startEdit(step)}
+                      title="Click to edit"
+                    >
+                      {step.content}
+                    </p>
+                  )}
+                </div>
 
-              {/* Delete — always rendered to hold the grid column */}
-              <div className="pt-px">
-                {editingId !== step.id && (
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => startTransition(async () => {
-                      await deleteRecipeStepAction(step.id, productId, recipeId);
-                      setSteps((l) => l.filter((s) => s.id !== step.id));
-                    })}
-                    className="text-on-surface-variant/30 hover:text-on-error-container transition-colors disabled:opacity-40"
-                    aria-label="Delete step"
-                  >
-                    <TrashIcon />
-                  </button>
-                )}
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
+                {/* Delete — always rendered to hold the grid column */}
+                <div className="self-start pt-0.5">
+                  {editingId !== step.id && (
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => startTransition(async () => {
+                        await deleteRecipeStepAction(step.id, productId, recipeId);
+                        setSteps((l) => l.filter((s) => s.id !== step.id));
+                      })}
+                      className="text-on-surface-variant/30 hover:text-on-error-container transition-colors disabled:opacity-40"
+                      aria-label="Delete step"
+                    >
+                      <TrashIcon />
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
 
-      {/* Add step */}
-      <div className="space-y-2 pt-1">
+      {/* Add step — persistent panel on the right */}
+      <div className="space-y-2 sm:w-48 sm:shrink-0">
+        <p className="font-label text-[10px] uppercase tracking-wider text-on-surface-variant">
+          Add step
+        </p>
         <textarea
           value={newContent}
           onChange={(e) => setNewContent(e.target.value)}
-          rows={2}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleAdd();
+          }}
+          rows={4}
           placeholder={`Step ${steps.length + 1}…`}
           className="ghost-border w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
         />
@@ -165,16 +191,7 @@ export function RecipeStepsClient({
           size="md"
           disabled={isPending || !newContent.trim()}
           biteColor="var(--color-surface-container-lowest)"
-          onClick={() => {
-            const content = newContent.trim();
-            if (!content) return;
-            const sortOrder = steps.length * 10;
-            setNewContent("");
-            startTransition(async () => {
-              const row = await addRecipeStepAction(recipeId, productId, content, sortOrder);
-              if (row) setSteps((l) => [...l, { id: row.id, content: row.content, sortOrder: row.sortOrder }]);
-            });
-          }}
+          onClick={handleAdd}
         >
           + Add step
         </BiteButton>
