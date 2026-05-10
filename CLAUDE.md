@@ -12,12 +12,12 @@ context (drops, custom requests, fulfillment, tax) — this file is for code onl
 
 - Next.js 16.2 (App Router, Turbopack default) + React 19.2 + TypeScript
 - Tailwind CSS v4 (CSS-first `@theme` config in `src/app/globals.css`)
-- Drizzle ORM + Postgres (DO Managed in prod, Docker locally)
+- Drizzle ORM + Postgres (Railway Postgres in prod, Docker locally)
 - Auth.js v5 (Google OAuth + Resend magic link + email/password, admin role on users.role)
 - Stripe Checkout (catalog/drops) + Stripe payment links (custom-request quotes)
 - Resend for transactional email
 - DO Spaces (S3-compatible) for image uploads — falls back to `public/uploads/` locally
-- Deployed via DO App Platform (`.do/app.yaml`, `doctl`)
+- Deployed via Railway (Docker; auto-detects Dockerfile on push)
 
 ## Commands
 

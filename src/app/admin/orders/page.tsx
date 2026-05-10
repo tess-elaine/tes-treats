@@ -2,7 +2,7 @@ import Link from "next/link";
 import { NibbleCard } from "@/components/ui/nibble-card";
 import { db } from "@/db";
 import { orders, orderStatus } from "@/db/schema/orders";
-import { eq, ne, desc } from "drizzle-orm";
+import { eq, inArray, desc } from "drizzle-orm";
 import { formatCents, formatDate } from "@/lib/format";
 
 export const metadata = { title: "Admin · Orders" };
@@ -45,7 +45,7 @@ export default async function AdminOrdersPage({
     : await db
         .select()
         .from(orders)
-        .where(ne(orders.status, "pending"))
+        .where(inArray(orders.status, LISTED_STATUSES))
         .orderBy(desc(orders.createdAt))
         .limit(200);
 
