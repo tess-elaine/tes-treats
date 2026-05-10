@@ -28,9 +28,15 @@ export async function submitCustomRequestAction(formData: FormData) {
   const name = [firstName, lastName].filter(Boolean).join(" ") || null;
   const phone = String(formData.get("phone") ?? "").trim() || null;
   const occasion = String(formData.get("occasion") ?? "").trim() || null;
-  const desiredDate = String(formData.get("desiredDate") ?? "").trim() || null;
+  const desiredDateRaw = String(formData.get("desiredDate") ?? "").trim();
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const desiredDate = desiredDateRaw && desiredDateRaw >= todayStr ? desiredDateRaw : null;
+
   const servingsRaw = String(formData.get("servings") ?? "").trim();
-  const servings = servingsRaw ? Number(servingsRaw) : null;
+  const servingsNum = servingsRaw ? Number(servingsRaw) : null;
+  const servings = servingsNum !== null && Number.isFinite(servingsNum) && servingsNum >= 1
+    ? Math.round(servingsNum)
+    : null;
 
   const number = `CR-${randomBytes(3).toString("hex").toUpperCase()}`;
 
