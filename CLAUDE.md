@@ -153,7 +153,7 @@ When making any schema change:
 - `lib/format.ts` — `formatCents()`, `formatDate()` — use these everywhere, never inline
 
 ### Components
-- `<BiteButton>` — **the only button component**. Use it for every clickable action that looks like a button. Never write a raw `<button>` or `<a>` with manual `bg-primary`/`rounded-md`/`px-*` styling — that's the old pre-component approach and must not come back. Props: `size` (`"lg"` | `"md"`), `variant` (`"primary"` | `"secondary"` | `"ghost"`), `href` (renders as Next.js `<Link>`), `biteColor` (see below). Small inline text-link actions (table row actions, pagination) may remain as plain styled text links.
+- `<BiteButton>` — **the only button component**. Use it for every clickable action that looks like a button. Never write a raw `<button>` or `<a>` with manual `bg-primary`/`rounded-md`/`px-*` styling — that's the old pre-component approach and must not come back. Props: `size` (`"lg"` only — `"md"` is retired), `variant` (`"primary"` | `"secondary"` | `"ghost"`), `href` (renders as Next.js `<Link>`), `biteColor` (see below). Small inline text-link actions (table row actions, pagination) may remain as plain styled text links.
 - `<NibbleCard>` — card surface. `bite` prop is accepted but all positions resolve to `rounded-lg` — the scalloped-mask bite was removed from cards.
 - `<ConfirmSubmit>` — wraps a submit button with a JS `confirm()` dialog. Used for destructive admin actions.
 
@@ -207,9 +207,10 @@ different surface:
 
 ### Size variants
 
-`BiteButton` picks bite size automatically from the `size` prop:
-- `size="lg"` → `btn-bite-1 / btn-bite-2 / btn-bite-3` (44×20, 32×14, 26×14 px)
-- `size="md"` → `btn-bite-1-sm / btn-bite-2-sm / btn-bite-3-sm` (36×16, 26×12, 20×10 px)
+Both sizes use the same three-bite cluster geometry (top-right, bites going right and down). `size="md"` is ~75% scale.
+
+- `size="lg"` → hero CTAs, primary page actions (`px-8 py-4 text-lg`)
+- `size="md"` → form actions, inline buttons (`px-6 py-3 text-base`)
 
 Ghost variant gets no bites (transparent background = no bite to show).
 
