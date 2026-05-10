@@ -2,7 +2,7 @@ import Link from "next/link";
 import { NibbleCard } from "@/components/ui/nibble-card";
 import { db } from "@/db";
 import { orders, orderStatus } from "@/db/schema/orders";
-import { eq, desc } from "drizzle-orm";
+import { eq, ne, desc } from "drizzle-orm";
 import { formatCents, formatDate } from "@/lib/format";
 
 export const metadata = { title: "Admin · Orders" };
@@ -10,6 +10,9 @@ export const dynamic = "force-dynamic";
 
 const STATUSES = orderStatus.enumValues;
 type Status = (typeof STATUSES)[number];
+type ListedStatus = Exclude<Status, "pending">;
+// Pending orders live on the Abandoned Carts page — keep them out of here.
+const LISTED_STATUSES = STATUSES.filter((s): s is ListedStatus => s !== "pending");
 
 const STATUS_LABEL: Record<string, string> = {
   pending: "Pending",
@@ -27,7 +30,10 @@ export default async function AdminOrdersPage({
   searchParams: Promise<{ status?: string }>;
 }) {
   const { status } = await searchParams;
-  const filter = STATUSES.includes(status as Status) ? (status as Status) : null;
+  const filter: ListedStatus | null =
+    status != null && (LISTED_STATUSES as string[]).includes(status)
+      ? (status as ListedStatus)
+      : null;
 
   const list = filter
     ? await db
@@ -39,6 +45,7 @@ export default async function AdminOrdersPage({
     : await db
         .select()
         .from(orders)
+        .where(ne(orders.status, "pending"))
         .orderBy(desc(orders.createdAt))
         .limit(200);
 
@@ -57,7 +64,7 @@ export default async function AdminOrdersPage({
 
       <nav aria-label="Filter by status" className="flex flex-wrap gap-2">
         <FilterPill href="/admin/orders" label="All" active={!filter} />
-        {STATUSES.map((sval) => (
+        {LISTED_STATUSES.map((sval) => (
           <FilterPill
             key={sval}
             href={`/admin/orders?status=${sval}`}
