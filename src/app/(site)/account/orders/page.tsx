@@ -21,7 +21,8 @@ const STATUS_LABEL: Record<string, string> = {
 export default async function MyOrdersPage() {
   const user = await requireUser("/account/orders");
   const list = await db.query.orders.findMany({
-    where: (t, { eq }) => eq(t.userId, user.id),
+    where: (t, { eq, and, ne }) =>
+      and(eq(t.userId, user.id), ne(t.status, "pending")),
     orderBy: (t, { desc }) => [desc(t.createdAt)],
   });
 

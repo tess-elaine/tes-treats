@@ -65,6 +65,28 @@ export default async function ConfirmationPage({
     where: (t, { eq }) => eq(t.orderId, order.id),
   });
 
+  if (order.status === "pending") {
+    return (
+      <section className="px-6 py-section">
+        <div className="mx-auto max-w-3xl">
+          <p className="font-label uppercase tracking-[0.2em] text-on-secondary-container">
+            Payment not received
+          </p>
+          <h1 className="mt-2 font-headline text-4xl font-extrabold text-primary md:text-5xl">
+            Order {order.number}
+          </h1>
+          <p className="mt-3 text-tertiary">
+            We haven&rsquo;t received payment for this order yet. If you meant to
+            complete checkout, please return to the shop and try again.
+          </p>
+          <div className="mt-10">
+            <BiteButton href="/shop" size="lg">Shop the treats</BiteButton>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="px-6 py-section">
       <div className="mx-auto max-w-3xl">
