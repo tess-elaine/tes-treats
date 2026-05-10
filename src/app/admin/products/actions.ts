@@ -475,3 +475,117 @@ export async function deleteVariantAction(formData: FormData) {
   await db.delete(productVariants).where(eq(productVariants.id, id));
   if (productId) revalidatePath(`/admin/products/${productId}`);
 }
+
+// ---------------------------------------------------------------------------
+// Batch save — product details + variant edits/inserts/deletes in one shot.
+// Called programmatically from the ProductEditClient floating save bar.
+// No redirect; caller does router.refresh() to pick up revalidated data.
+// ---------------------------------------------------------------------------
+
+type VariantInput = {
+  id: string;
+  isNew?: boolean;
+  label: string;
+  priceUsd: string;
+  weightOz: string;
+  sortOrder: number;
+  isAvailable: boolean;
+  isDefault: boolean;
+};
+
+export async function batchSaveProductAction(formData: FormData) {
+  await requireAdmin();
+  const id = s(formData.get("productId"));
+  if (!id) return;
+
+  // --- Product details ---
+  const name = s(formData.get("name"));
+  const slug = s(formData.get("slug")) || slugify(name);
+  const categoryId = await resolveCategoryId(formData);
+
+  await db
+    .update(products)
+    .set({
+      name,
+      slug,
+      shortDescription: s(formData.get("shortDescription")) || null,
+      ...(categoryId ? { categoryId } : {}),
+      isFeatured: formData.get("isFeatured") === "on",
+      isAvailable: formData.get("isAvailable") === "on",
+      sortOrder: nullableInt(formData.get("sortOrder")) ?? 0,
+      ingredientChips: parseChips(s(formData.get("ingredientChips"))),
+      updatedAt: new Date(),
+    })
+    .where(eq(products.id, id));
+
+  // --- Variants ---
+  const variantInputs: VariantInput[] = JSON.parse(
+    s(formData.get("variants")) || "[]"
+  );
+  const deleteIds: string[] = JSON.parse(
+    s(formData.get("pendingDeletes")) || "[]"
+  );
+
+  // Delete first so isDefault re-assignment works cleanly
+  for (const vid of deleteIds) {
+    try {
+      await db
+        .delete(productVariants)
+        .where(
+          and(eq(productVariants.id, vid), eq(productVariants.productId, id))
+        );
+    } catch {
+      // Variant is referenced by an order — soft-hide instead
+      await db
+        .update(productVariants)
+        .set({ isAvailable: false })
+        .where(eq(productVariants.id, vid));
+    }
+  }
+
+  // Clear isDefault before applying the client's selection
+  if (variantInputs.some((v) => v.isDefault)) {
+    await db
+      .update(productVariants)
+      .set({ isDefault: false })
+      .where(eq(productVariants.productId, id));
+  }
+
+  for (const v of variantInputs) {
+    const priceCents = Math.round(Number(v.priceUsd) * 100);
+    const weightOz = v.weightOz.trim() ? Number(v.weightOz.trim()) : null;
+    const safePrice =
+      Number.isFinite(priceCents) && priceCents >= 0 ? priceCents : 0;
+    const safeWeight =
+      weightOz !== null && Number.isFinite(weightOz) ? weightOz : null;
+
+    if (v.isNew) {
+      await db.insert(productVariants).values({
+        productId: id,
+        label: v.label || "Variant",
+        priceCents: safePrice,
+        weightOz: safeWeight,
+        sortOrder: v.sortOrder,
+        isAvailable: v.isAvailable,
+        isDefault: v.isDefault,
+      });
+    } else {
+      await db
+        .update(productVariants)
+        .set({
+          label: v.label,
+          priceCents: safePrice,
+          weightOz: safeWeight,
+          sortOrder: v.sortOrder,
+          isAvailable: v.isAvailable,
+          isDefault: v.isDefault,
+        })
+        .where(
+          and(eq(productVariants.id, v.id), eq(productVariants.productId, id))
+        );
+    }
+  }
+
+  revalidatePath(`/admin/products/${id}`);
+  revalidatePath("/admin/products");
+}

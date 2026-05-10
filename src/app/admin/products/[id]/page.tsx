@@ -1,30 +1,24 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { BiteButton } from "@/components/ui/bite-button";
 import { NibbleCard } from "@/components/ui/nibble-card";
-import { CategoryTypeahead } from "@/components/ui/category-typeahead";
+import { BiteButton } from "@/components/ui/bite-button";
 import { ImageUploadField } from "@/components/ui/image-upload-field";
 import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { db } from "@/db";
-import { formatCents } from "@/lib/format";
 import {
   listCategories,
   imagesForProduct,
   categoryForProduct,
 } from "@/lib/products";
 import {
-  updateProductAction,
   deleteProductAction,
-  addVariantAction,
-  updateVariantAction,
-  setDefaultVariantAction,
-  deleteVariantAction,
   addProductImageAction,
   bulkUpdateImageDetailsAction,
   setPrimaryImageById,
   deleteProductImageById,
 } from "../actions";
+import { ProductEditClient } from "./ProductEditClient";
 
 export const dynamic = "force-dynamic";
 
@@ -69,7 +63,10 @@ export default async function AdminProductDetail({
           <h1 className="mt-2 font-headline text-3xl font-extrabold text-primary md:text-4xl">
             {product.name}
           </h1>
-          <Link href={`/shop/${product.slug}`} className="mt-1 inline-block text-sm text-on-surface-variant hover:text-primary">
+          <Link
+            href={`/shop/${product.slug}`}
+            className="mt-1 inline-block text-sm text-on-surface-variant hover:text-primary"
+          >
             /shop/{product.slug}
           </Link>
         </div>
@@ -90,37 +87,25 @@ export default async function AdminProductDetail({
         </p>
       ) : error === "category" ? (
         <p className="rounded-md bg-error-container px-4 py-3 text-sm text-on-error-container">
-          Pick a category from the list. <Link href="/admin/categories/new" className="underline">Create one</Link> if it doesn&rsquo;t exist yet.
+          Pick a category from the list.{" "}
+          <Link href="/admin/categories/new" className="underline">
+            Create one
+          </Link>{" "}
+          if it doesn&rsquo;t exist yet.
         </p>
       ) : null}
 
-      <NibbleCard bite="none" className="p-6 md:p-10">
-        <h2 className="font-headline text-xl font-bold text-primary">Details</h2>
-        <form action={updateProductAction} className="mt-4 space-y-5">
-          <input type="hidden" name="id" value={product.id} />
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field name="name" label="Name" defaultValue={product.name} required />
-            <Field name="slug" label="URL slug" defaultValue={product.slug} />
-          </div>
-          <TextArea name="shortDescription" label="Description" rows={5} defaultValue={product.shortDescription ?? ""} />
-          <div className="grid gap-4 md:grid-cols-3">
-            <CategoryTypeahead categories={categories} defaultValue={currentCategory?.slug} required />
-            <Field name="sortOrder" type="number" label="Sort order" defaultValue={String(product.sortOrder)} />
-            <Field
-              name="ingredientChips"
-              label="Chip callouts (comma-separated)"
-              defaultValue={(product.ingredientChips ?? []).join(", ")}
-            />
-          </div>
-          <div className="flex flex-wrap gap-4">
-            <Toggle name="isAvailable" label="Available on /shop" defaultChecked={product.isAvailable} />
-            <Toggle name="isFeatured" label="Featured on homepage" defaultChecked={product.isFeatured} />
-          </div>
-
-          <BiteButton size="lg">Save details</BiteButton>
-        </form>
-      </NibbleCard>
+      {/*
+        Details + Variants are client-managed with a unified floating save bar.
+        Key on updatedAt so the component remounts with fresh data after each save.
+      */}
+      <ProductEditClient
+        key={product.updatedAt?.getTime() ?? 0}
+        product={product}
+        variants={variants}
+        categories={categories}
+        currentCategorySlug={currentCategory?.slug}
+      />
 
       {/* ---------------- Image gallery ---------------- */}
       <NibbleCard bite="none" className="p-6 md:p-10">
@@ -220,9 +205,11 @@ export default async function AdminProductDetail({
           </p>
         )}
 
-        <details className="mt-8 group rounded-md bg-primary-fixed open:p-5">
-          <summary className="cursor-pointer list-none p-4 font-headline text-base font-bold text-primary group-open:p-0 group-open:mb-4 flex items-center gap-2 hover:underline">
-            <span aria-hidden className="font-mono text-lg">+</span>
+        <details className="group mt-8 rounded-md bg-primary-fixed open:p-5">
+          <summary className="flex cursor-pointer list-none items-center gap-2 p-4 font-headline text-base font-bold text-primary hover:underline group-open:mb-4 group-open:p-0">
+            <span aria-hidden className="font-mono text-lg">
+              +
+            </span>
             Add image(s) to gallery
           </summary>
           <form
@@ -251,136 +238,10 @@ export default async function AdminProductDetail({
         </details>
 
         <p className="mt-4 text-xs text-on-surface-variant">
-          The primary image powers thumbnails everywhere (cart, list, homepage). The rest form
-          the gallery on the public product page.
+          The primary image powers thumbnails everywhere (cart, list, homepage).
+          The rest form the gallery on the public product page.
         </p>
       </NibbleCard>
-
-      {/* ---------------- Variants ---------------- */}
-      <NibbleCard bite="none" className="p-6 md:p-10">
-        <div className="flex items-baseline justify-between">
-          <h2 className="font-headline text-xl font-bold text-primary">Variants</h2>
-          <span className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant">
-            {variants.length} {variants.length === 1 ? "variant" : "variants"}
-          </span>
-        </div>
-
-        <div className="mt-4 space-y-3">
-          {variants.map((v) => (
-            <form
-              key={v.id}
-              action={updateVariantAction}
-              className="grid items-end gap-3 rounded-md bg-surface-container-low p-4 sm:grid-cols-[2fr_1fr_1fr_1fr_auto_auto]"
-            >
-              <input type="hidden" name="id" value={v.id} />
-              <input type="hidden" name="productId" value={product.id} />
-              <Field name="label" label="Label" defaultValue={v.label} />
-              <Field name="priceUsd" type="number" label="Price ($)" defaultValue={(v.priceCents / 100).toFixed(2)} />
-              <Field name="weightOz" type="number" label="Weight (oz)" defaultValue={String(v.weightOz ?? "")} />
-              <Field name="sortOrder" type="number" label="Sort" defaultValue={String(v.sortOrder)} />
-              <Toggle name="isAvailable" label="Active" defaultChecked={v.isAvailable} />
-              <button
-                type="submit"
-                className="font-label text-xs uppercase tracking-[0.12em] text-primary hover:underline"
-              >
-                Save
-              </button>
-              <div className="sm:col-span-6 flex items-center justify-between text-xs">
-                <span className={v.isDefault ? "font-medium text-primary" : "text-on-surface-variant"}>
-                  {v.isDefault ? "★ Default variant" : "Not default"}
-                </span>
-                <div className="flex gap-3">
-                  {!v.isDefault ? (
-                    <DangerForm action={setDefaultVariantAction} idValue={v.id} productId={product.id} label="Make default" />
-                  ) : null}
-                  <DangerForm action={deleteVariantAction} idValue={v.id} productId={product.id} label="Delete" danger />
-                </div>
-              </div>
-            </form>
-          ))}
-
-          <form action={addVariantAction} className="grid items-end gap-3 rounded-md bg-surface-container-lowest p-4 sm:grid-cols-[2fr_1fr_1fr_1fr_auto]">
-            <input type="hidden" name="productId" value={product.id} />
-            <Field name="label" label="Add a variant — Label" placeholder="Dozen" />
-            <Field name="priceUsd" type="number" label="Price ($)" placeholder="24.00" />
-            <Field name="weightOz" type="number" label="Weight (oz)" />
-            <Field name="sortOrder" type="number" label="Sort" defaultValue={String(variants.length * 10)} />
-            <button type="submit" className="font-label text-xs uppercase tracking-[0.12em] text-primary hover:underline">
-              + Add variant
-            </button>
-          </form>
-        </div>
-      </NibbleCard>
     </div>
-  );
-}
-
-function DangerForm({
-  action, idValue, productId, label, danger,
-}: {
-  action: (fd: FormData) => Promise<void>;
-  idValue: string; productId: string; label: string; danger?: boolean;
-}) {
-  const cls = `font-label text-xs uppercase tracking-[0.12em] ${
-    danger ? "text-on-error-container hover:underline" : "text-primary hover:underline"
-  }`;
-  return (
-    <form action={action}>
-      <input type="hidden" name="id" value={idValue} />
-      <input type="hidden" name="productId" value={productId} />
-      {danger ? (
-        <ConfirmSubmit
-          message={`${label} this permanently? This can't be undone.`}
-          className={cls}
-        >
-          {label}
-        </ConfirmSubmit>
-      ) : (
-        <button type="submit" className={cls}>
-          {label}
-        </button>
-      )}
-    </form>
-  );
-}
-
-function Field({
-  name, label, type = "text", required, placeholder, defaultValue,
-}: {
-  name: string; label: string; type?: string; required?: boolean; placeholder?: string; defaultValue?: string;
-}) {
-  const isMoney = name.endsWith("Usd") || name.includes("price");
-  return (
-    <label className="block">
-      <span className="font-label uppercase tracking-[0.12em] text-on-surface-variant">{label}</span>
-      <input
-        name={name}
-        type={type}
-        required={required}
-        placeholder={placeholder}
-        defaultValue={defaultValue}
-        step={isMoney && type === "number" ? "0.01" : undefined}
-        min={isMoney && type === "number" ? 0 : undefined}
-        className="ghost-border mt-1 w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
-      />
-    </label>
-  );
-}
-function TextArea({ name, label, rows = 3, defaultValue }: { name: string; label: string; rows?: number; defaultValue?: string }) {
-  return (
-    <label className="block">
-      <span className="font-label uppercase tracking-[0.12em] text-on-surface-variant">{label}</span>
-      <textarea name={name} rows={rows} defaultValue={defaultValue}
-        className="ghost-border mt-1 w-full rounded-md bg-surface-container-high px-4 py-3 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
-      />
-    </label>
-  );
-}
-function Toggle({ name, label, defaultChecked }: { name: string; label: string; defaultChecked?: boolean }) {
-  return (
-    <label className="flex items-center gap-3">
-      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4 accent-primary" />
-      <span>{label}</span>
-    </label>
   );
 }
