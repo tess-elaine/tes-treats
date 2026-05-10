@@ -4,7 +4,6 @@ import { BiteButton } from "@/components/ui/bite-button";
 import { db } from "@/db";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { ALLERGEN_KEYS, ALLERGEN_LABELS } from "@/lib/allergens";
-import { PURCHASE_UNITS } from "@/db/schema/catalog";
 import { updateIngredientAction } from "../../actions";
 import { UnitAndGramsFields } from "../../UnitAndGramsFields";
 
@@ -50,6 +49,9 @@ export default async function EditIngredientPage({
           <UnitAndGramsFields
             initialUnit={ing.defaultUnit}
             initialGrams={ing.gramsPerUnit ?? ""}
+            initialPurchaseUnit={ing.purchaseUnit ?? ""}
+            initialPurchaseCost={ing.purchaseCostCents != null ? (ing.purchaseCostCents / 100).toFixed(2) : ""}
+            initialPurchaseQuantity={ing.purchaseQuantity ?? ""}
           />
 
           <div>
@@ -70,54 +72,6 @@ export default async function EditIngredientPage({
                 </label>
               ))}
             </div>
-          </div>
-
-          <div>
-            <p className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant mb-3">
-              Purchase cost (for recipe costing)
-            </p>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs text-on-surface-variant mb-1">Cost ($)</label>
-                <input
-                  name="purchaseCostDollars"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="3.79"
-                  defaultValue={ing.purchaseCostCents != null ? (ing.purchaseCostCents / 100).toFixed(2) : ""}
-                  className="ghost-border w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-on-surface-variant mb-1">Pkg size</label>
-                <input
-                  name="purchaseQuantity"
-                  type="number"
-                  min="0"
-                  step="any"
-                  placeholder="2270"
-                  defaultValue={ing.purchaseQuantity ?? ""}
-                  className="ghost-border w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-on-surface-variant mb-1">Pkg unit</label>
-                <select
-                  name="purchaseUnit"
-                  defaultValue={ing.purchaseUnit ?? ""}
-                  className="ghost-border w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
-                >
-                  <option value="">—</option>
-                  {PURCHASE_UNITS.map((u) => (
-                    <option key={u} value={u}>{u}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <p className="mt-1 text-xs text-on-surface-variant/60">
-              Used to auto-calculate ingredient cost in cookbook recipes.
-            </p>
           </div>
 
           <div className="flex gap-3">
