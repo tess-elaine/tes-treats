@@ -4,9 +4,9 @@ import { db } from "@/db";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { NibbleCard } from "@/components/ui/nibble-card";
 import { BiteButton } from "@/components/ui/bite-button";
-import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { formatCents } from "@/lib/format";
-import { setDefaultRecipeAction, deleteRecipeAction } from "../actions";
+import { setDefaultRecipeAction } from "../actions";
+import { DeleteRecipeButton } from "../DeleteRecipeButton";
 import { calcTotalBatchCostCents } from "@/lib/cookbook";
 
 export default async function ProductCookbookPage({
@@ -176,19 +176,11 @@ export default async function ProductCookbookPage({
                         </BiteButton>
                       </form>
                     )}
-                    <form
-                      action={async () => {
-                        "use server";
-                        await deleteRecipeAction(recipe.id, productId);
-                      }}
-                    >
-                      <ConfirmSubmit
-                        message={`Delete "${recipe.name}"? This cannot be undone.`}
-                        className="font-label text-xs uppercase tracking-[0.12em] text-on-error-container hover:underline"
-                      >
-                        Delete
-                      </ConfirmSubmit>
-                    </form>
+                    <DeleteRecipeButton
+                      recipeId={recipe.id}
+                      productId={productId}
+                      recipeName={recipe.name}
+                    />
                   </div>
                 </div>
               </NibbleCard>
