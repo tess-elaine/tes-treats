@@ -22,6 +22,10 @@ import {
   numeric,
 } from "drizzle-orm/pg-core";
 
+// Purchase unit options for ingredient cost tracking
+export const PURCHASE_UNITS = ["g", "oz", "lb", "each", "stick", "cup", "tbsp", "tsp", "can", "package"] as const;
+export type PurchaseUnit = (typeof PURCHASE_UNITS)[number];
+
 export const productCategories = pgTable("product_category", {
   id: uuid("id").primaryKey().defaultRandom(),
   slug: text("slug").notNull().unique(),
@@ -95,6 +99,10 @@ export const ingredients = pgTable("ingredient", {
   name: text("name").notNull().unique(),
   allergens: text("allergens").array().notNull().default([]),
   defaultUnit: text("default_unit").notNull().default("cup"),
+  // Purchase cost for recipe cost calculations
+  purchaseCostCents: integer("purchase_cost_cents"),
+  purchaseQuantity: numeric("purchase_quantity", { precision: 10, scale: 4 }),
+  purchaseUnit: text("purchase_unit"), // one of PURCHASE_UNITS
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -114,11 +122,56 @@ export const productIngredients = pgTable("product_ingredient", {
 });
 
 // ---------------------------------------------------------------------------
+// Recipe / Cookbook
+// ---------------------------------------------------------------------------
+
+// A named batch recipe for a product. One product can have multiple batch sizes.
+// The `isDefault` recipe drives quantityPerUnit in productIngredients for
+// customer-facing allergen display.
+export const productRecipes = pgTable("product_recipe", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  productId: uuid("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  name: text("name").notNull().default("Standard Batch"),
+  batchYield: integer("batch_yield").notNull(),
+  bakeTemp: integer("bake_temp"),        // °F
+  bakeTimeMin: integer("bake_time_min"), // minutes
+  bakeTimeMax: integer("bake_time_max"), // minutes
+  scoopSize: text("scoop_size"),         // e.g. "Medium", "4oz scoop"
+  cookiesPerPan: integer("cookies_per_pan"),
+  directions: text("directions"),
+  notes: text("notes"),
+  isDefault: boolean("is_default").notNull().default(false),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Ingredients for a specific recipe at batch quantities.
+// batchQuantityGrams is optional — used when the display unit is cups but Tess
+// knows the gram weight, enabling accurate cost calculation against g-priced ingredients.
+export const recipeIngredients = pgTable("recipe_ingredient", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  recipeId: uuid("recipe_id")
+    .notNull()
+    .references(() => productRecipes.id, { onDelete: "cascade" }),
+  ingredientId: uuid("ingredient_id")
+    .notNull()
+    .references(() => ingredients.id, { onDelete: "restrict" }),
+  batchQuantity: numeric("batch_quantity", { precision: 10, scale: 4 }).notNull(),
+  unit: text("unit").notNull(),
+  batchQuantityGrams: numeric("batch_quantity_grams", { precision: 10, scale: 4 }),
+  notes: text("notes"),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+// ---------------------------------------------------------------------------
 // Relations
 // ---------------------------------------------------------------------------
 
 export const productsRelations = relations(products, ({ many }) => ({
   productIngredients: many(productIngredients),
+  productRecipes: many(productRecipes),
 }));
 
 export const productVariantsRelations = relations(productVariants, ({ one }) => ({
@@ -130,6 +183,26 @@ export const productVariantsRelations = relations(productVariants, ({ one }) => 
 
 export const ingredientsRelations = relations(ingredients, ({ many }) => ({
   productIngredients: many(productIngredients),
+  recipeIngredients: many(recipeIngredients),
+}));
+
+export const productRecipesRelations = relations(productRecipes, ({ one, many }) => ({
+  product: one(products, {
+    fields: [productRecipes.productId],
+    references: [products.id],
+  }),
+  recipeIngredients: many(recipeIngredients),
+}));
+
+export const recipeIngredientsRelations = relations(recipeIngredients, ({ one }) => ({
+  recipe: one(productRecipes, {
+    fields: [recipeIngredients.recipeId],
+    references: [productRecipes.id],
+  }),
+  ingredient: one(ingredients, {
+    fields: [recipeIngredients.ingredientId],
+    references: [ingredients.id],
+  }),
 }));
 
 export const productIngredientsRelations = relations(productIngredients, ({ one }) => ({

@@ -37,7 +37,7 @@ export default async function AdminProductDetail({
   });
   if (!product) notFound();
 
-  const [variants, images, categories, currentCategory, productIngredients] = await Promise.all([
+  const [variants, images, categories, currentCategory] = await Promise.all([
     db.query.productVariants.findMany({
       where: (t, { eq }) => eq(t.productId, product.id),
       orderBy: (t, { desc, asc }) => [desc(t.isDefault), asc(t.sortOrder)],
@@ -45,11 +45,6 @@ export default async function AdminProductDetail({
     imagesForProduct(product.id),
     listCategories(),
     categoryForProduct(product.id),
-    db.query.productIngredients.findMany({
-      where: (t, { eq }) => eq(t.productId, product.id),
-      orderBy: (t, { asc }) => [asc(t.sortOrder)],
-      with: { ingredient: { columns: { name: true, defaultUnit: true } } },
-    }),
   ]);
 
   return (
@@ -110,7 +105,6 @@ export default async function AdminProductDetail({
         variants={variants}
         categories={categories}
         currentCategorySlug={currentCategory?.slug}
-        productIngredients={productIngredients}
       />
 
       {/* ---------------- Image gallery ---------------- */}

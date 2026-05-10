@@ -25,6 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <NavItem href="/admin/prep" label="Prep sheet" />
           <NavItem href="/admin/abandoned-carts" label="Abandoned Carts" />
           <NavItem href="/admin/ingredients" label="Ingredients" />
+          <NavItem href="/admin/cookbook" label="Cookbook" />
           <NavItem href="/admin/subscribers" label="Subscribers" />
           <NavItem href="/admin/config" label="Site config" />
         </nav>

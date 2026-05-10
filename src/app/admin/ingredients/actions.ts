@@ -21,10 +21,17 @@ export async function createIngredientAction(formData: FormData) {
     (k) => formData.get(`allergen_${k}`) === "on"
   ) as AllergenKey[];
 
+  const purchaseCostRaw = s(formData.get("purchaseCostDollars"));
+  const purchaseQuantityRaw = s(formData.get("purchaseQuantity"));
+  const purchaseUnit = s(formData.get("purchaseUnit")) || null;
+
   await db.insert(ingredients).values({
     name,
     allergens,
     defaultUnit: s(formData.get("defaultUnit")) || "cup",
+    purchaseCostCents: purchaseCostRaw ? Math.round(parseFloat(purchaseCostRaw) * 100) : null,
+    purchaseQuantity: purchaseQuantityRaw || null,
+    purchaseUnit,
   });
 
   revalidatePath("/admin/ingredients");
@@ -40,12 +47,19 @@ export async function updateIngredientAction(formData: FormData) {
     (k) => formData.get(`allergen_${k}`) === "on"
   ) as AllergenKey[];
 
+  const purchaseCostRaw = s(formData.get("purchaseCostDollars"));
+  const purchaseQuantityRaw = s(formData.get("purchaseQuantity"));
+  const purchaseUnit = s(formData.get("purchaseUnit")) || null;
+
   await db
     .update(ingredients)
     .set({
       name: s(formData.get("name")),
       allergens,
       defaultUnit: s(formData.get("defaultUnit")) || "cup",
+      purchaseCostCents: purchaseCostRaw ? Math.round(parseFloat(purchaseCostRaw) * 100) : null,
+      purchaseQuantity: purchaseQuantityRaw || null,
+      purchaseUnit,
     })
     .where(eq(ingredients.id, id));
 
