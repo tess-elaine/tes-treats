@@ -235,7 +235,7 @@ export default async function RecipeEditPage({
                 purchaseCostCents: ri.ingredient.purchaseCostCents,
                 purchaseQuantity: ri.ingredient.purchaseQuantity,
                 purchaseUnit: ri.ingredient.purchaseUnit,
-                gramsPerCup: ri.ingredient.gramsPerCup,
+                gramsPerUnit: ri.ingredient.gramsPerUnit,
               },
             }))}
           />

@@ -24,7 +24,7 @@ export async function createIngredientAction(formData: FormData) {
   const purchaseCostRaw = s(formData.get("purchaseCostDollars"));
   const purchaseQuantityRaw = s(formData.get("purchaseQuantity"));
   const purchaseUnit = s(formData.get("purchaseUnit")) || null;
-  const gramsPerCupRaw = s(formData.get("gramsPerCup"));
+  const gramsPerUnitRaw = s(formData.get("gramsPerUnit"));
 
   await db.insert(ingredients).values({
     name,
@@ -33,7 +33,7 @@ export async function createIngredientAction(formData: FormData) {
     purchaseCostCents: purchaseCostRaw ? Math.round(parseFloat(purchaseCostRaw) * 100) : null,
     purchaseQuantity: purchaseQuantityRaw || null,
     purchaseUnit,
-    gramsPerCup: gramsPerCupRaw || null,
+    gramsPerUnit: gramsPerUnitRaw || null,
   });
 
   revalidatePath("/admin/ingredients");
@@ -52,7 +52,7 @@ export async function updateIngredientAction(formData: FormData) {
   const purchaseCostRaw = s(formData.get("purchaseCostDollars"));
   const purchaseQuantityRaw = s(formData.get("purchaseQuantity"));
   const purchaseUnit = s(formData.get("purchaseUnit")) || null;
-  const gramsPerCupRaw = s(formData.get("gramsPerCup"));
+  const gramsPerUnitRaw = s(formData.get("gramsPerUnit"));
 
   await db
     .update(ingredients)
@@ -63,7 +63,7 @@ export async function updateIngredientAction(formData: FormData) {
       purchaseCostCents: purchaseCostRaw ? Math.round(parseFloat(purchaseCostRaw) * 100) : null,
       purchaseQuantity: purchaseQuantityRaw || null,
       purchaseUnit,
-      gramsPerCup: gramsPerCupRaw || null,
+      gramsPerUnit: gramsPerUnitRaw || null,
     })
     .where(eq(ingredients.id, id));
 
@@ -93,7 +93,7 @@ export async function searchIngredientsAction(query: string) {
   if (!query.trim()) return [];
   const q = query.toLowerCase();
   const all = await db.query.ingredients.findMany({
-    columns: { id: true, name: true, defaultUnit: true, gramsPerCup: true },
+    columns: { id: true, name: true, defaultUnit: true, gramsPerUnit: true },
     orderBy: (t, { asc }) => [asc(t.name)],
   });
   return all.filter((i) => i.name.toLowerCase().includes(q)).slice(0, 10);

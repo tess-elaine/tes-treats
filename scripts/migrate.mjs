@@ -83,6 +83,22 @@ await client`
   )
 `;
 
+// Migration 0012: rename grams_per_cup → grams_per_unit (works for any unit, not just cups)
+await client`
+  DO $$
+  BEGIN
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_name = 'ingredient' AND column_name = 'grams_per_cup'
+    ) AND NOT EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_name = 'ingredient' AND column_name = 'grams_per_unit'
+    ) THEN
+      ALTER TABLE "ingredient" RENAME COLUMN "grams_per_cup" TO "grams_per_unit";
+    END IF;
+  END $$
+`;
+
 console.log("Applying migrations...");
 await migrate(db, { migrationsFolder: "./drizzle" });
 await client.end();

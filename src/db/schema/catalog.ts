@@ -103,9 +103,11 @@ export const ingredients = pgTable("ingredient", {
   purchaseCostCents: integer("purchase_cost_cents"),
   purchaseQuantity: numeric("purchase_quantity", { precision: 10, scale: 4 }),
   purchaseUnit: text("purchase_unit"), // one of PURCHASE_UNITS
-  // Grams per 1 cup of this ingredient — enables auto-fill of batchQuantityGrams
-  // when a recipe uses cups. Null for non-volume-measured ingredients (eggs, etc.).
-  gramsPerCup: numeric("grams_per_cup", { precision: 10, scale: 4 }),
+  // Grams per 1 of defaultUnit — enables auto-fill of batchQuantityGrams when a
+  // recipe uses this ingredient's default unit. Works for any unit: cup, tsp, stick,
+  // each, etc. Null when weight conversion isn't meaningful (e.g. eggs where you just
+  // count them).
+  gramsPerUnit: numeric("grams_per_unit", { precision: 10, scale: 4 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

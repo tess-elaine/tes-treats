@@ -20,7 +20,7 @@ type IngredientRef = {
   purchaseCostCents: number | null;
   purchaseQuantity: string | null;
   purchaseUnit: string | null;
-  gramsPerCup: string | null;
+  gramsPerUnit: string | null;
 };
 
 type RecipeIngredient = {
@@ -73,14 +73,15 @@ export function RecipeIngredientsClient({
     })));
   }, []);
 
-  // Auto-fill grams when qty or unit changes and ingredient has gramsPerCup
+  // Auto-fill grams when qty/unit matches the ingredient's defaultUnit
   function autoFillGrams(qtyStr: string, unitStr: string, ing: IngredientRef | null) {
-    if (!ing?.gramsPerCup) return;
-    const isCups = unitStr.toLowerCase().startsWith("cup");
-    if (!isCups) return;
+    if (!ing?.gramsPerUnit || !ing?.defaultUnit) return;
+    const norm = (u: string) => u.toLowerCase().trim();
+    if (norm(unitStr) !== norm(ing.defaultUnit)) return;
+    if (norm(unitStr) === "g") return;
     const qtyNum = parseFloat(qtyStr);
     if (!isNaN(qtyNum)) {
-      setGrams(String(Math.round(qtyNum * parseFloat(ing.gramsPerCup))));
+      setGrams(String(Math.round(qtyNum * parseFloat(ing.gramsPerUnit))));
     }
   }
 
@@ -261,7 +262,7 @@ export function RecipeIngredientsClient({
               <div>
                 <label className="block text-xs text-on-surface-variant mb-1">
                   Grams
-                  {selected?.gramsPerCup && unit.toLowerCase().startsWith("cup") ? (
+                  {selected?.gramsPerUnit && unit.toLowerCase().trim() === selected.defaultUnit.toLowerCase().trim() && unit.toLowerCase().trim() !== "g" ? (
                     <span className="ml-1 text-primary/60">(auto)</span>
                   ) : (
                     <span className="opacity-50"> (opt)</span>
@@ -291,7 +292,7 @@ export function RecipeIngredientsClient({
               </div>
             </div>
             <p className="text-xs text-on-surface-variant/60">
-              Enter grams if the ingredient is priced by weight (g) but measured in cups — used for accurate cost calculation.
+              Enter grams if the ingredient is priced by weight (g) but measured in another unit — used for accurate cost calculation.
             </p>
             <div className="flex gap-2">
               <BiteButton
@@ -326,7 +327,7 @@ export function RecipeIngredientsClient({
                         purchaseCostCents: row.ingredient.purchaseCostCents,
                         purchaseQuantity: row.ingredient.purchaseQuantity,
                         purchaseUnit: row.ingredient.purchaseUnit,
-                        gramsPerCup: row.ingredient.gramsPerCup ?? null,
+                        gramsPerUnit: row.ingredient.gramsPerUnit ?? null,
                       },
                     }]);
                   }
