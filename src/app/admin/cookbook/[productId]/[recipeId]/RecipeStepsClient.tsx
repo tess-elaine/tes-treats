@@ -174,9 +174,9 @@ export function RecipeStepsClient({
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleAdd();
           }}
-          rows={2}
+          rows={1}
           placeholder={`Step ${steps.length + 1}…`}
-          className="ghost-border flex-1 rounded-md bg-surface-container-high px-3 py-2 font-body text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
+          className="ghost-border flex-1 rounded-md bg-surface-container-high px-3 py-3 font-body text-sm leading-6 text-on-surface focus:bg-primary-fixed focus:outline-none"
         />
         <BiteButton
           type="button"
