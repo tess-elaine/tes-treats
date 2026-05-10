@@ -51,13 +51,9 @@ export function RecipeStepsClient({
   }
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
-      {/* Step list */}
-      <div className="flex-1 min-w-0">
-        {steps.length === 0 ? (
-          <p className="text-xs text-on-surface-variant/50">No steps yet — add the first one →</p>
-        ) : (
-          <ol className="space-y-1">
+    <div className="space-y-3">
+      {steps.length > 0 && (
+        <ol className="space-y-1">
             {steps.map((step, idx) => (
               <li
                 key={step.id}
@@ -91,7 +87,7 @@ export function RecipeStepsClient({
                 {/* Drag handle */}
                 <span
                   className={[
-                    "self-start select-none text-sm text-on-surface-variant/30",
+                    "self-center select-none text-sm text-on-surface-variant/30",
                     editingId !== step.id ? "cursor-grab" : "cursor-default opacity-0",
                   ].join(" ")}
                 >
@@ -168,23 +164,19 @@ export function RecipeStepsClient({
               </li>
             ))}
           </ol>
-        )}
-      </div>
+      )}
 
-      {/* Add step — persistent panel on the right */}
-      <div className="space-y-2 sm:w-48 sm:shrink-0">
-        <p className="font-label text-[10px] uppercase tracking-wider text-on-surface-variant">
-          Add step
-        </p>
+      {/* Add step */}
+      <div className="flex items-end gap-2 pt-1">
         <textarea
           value={newContent}
           onChange={(e) => setNewContent(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleAdd();
           }}
-          rows={4}
+          rows={2}
           placeholder={`Step ${steps.length + 1}…`}
-          className="ghost-border w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
+          className="ghost-border flex-1 rounded-md bg-surface-container-high px-3 py-2 font-body text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
         />
         <BiteButton
           type="button"
