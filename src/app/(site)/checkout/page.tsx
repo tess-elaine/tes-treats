@@ -14,6 +14,7 @@ export const metadata = { title: "Checkout" };
 export const dynamic = "force-dynamic";
 
 const ERRORS: Record<string, string> = {
+  name: "Please enter your first and last name.",
   email: "Please enter a valid email address.",
   address: "Please fill in the delivery address.",
   zone: "Sorry, that zip code isn't in Tess's delivery area yet — try pickup, or contact us.",
@@ -51,6 +52,10 @@ export default async function CheckoutPage({
                 Contact
               </h2>
               <div className="mt-4 grid gap-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <Field name="firstName" label="First name" required />
+                  <Field name="lastName" label="Last name" required />
+                </div>
                 <Field
                   name="email"
                   type="email"

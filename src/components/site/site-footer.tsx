@@ -24,7 +24,7 @@ export function SiteFooter() {
       </div>
       <div className="border-t border-outline-variant/15">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-6 py-6 text-sm text-on-surface-variant md:flex-row">
-          <p>© {new Date().getFullYear()} TES Treats.</p>
+          <p>© {new Date().getFullYear()} TES Treats</p>
           <p>
             <Link href="/terms" className="hover:text-primary">Terms</Link>
             <span className="mx-2">·</span>

@@ -27,6 +27,8 @@ export type DeliveryAddress = {
 
 export type CreateOrderInput = {
   cart: Cart;
+  firstName?: string;
+  lastName?: string;
   email: string;
   phone?: string;
   userId?: string;
@@ -66,6 +68,8 @@ export async function createPendingOrder(input: CreateOrderInput): Promise<{
     .insert(orders)
     .values({
       number,
+      firstName: input.firstName,
+      lastName: input.lastName,
       userId: input.userId,
       email: input.email,
       phone: input.phone,

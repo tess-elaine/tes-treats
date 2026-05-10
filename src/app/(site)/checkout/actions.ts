@@ -30,6 +30,11 @@ export async function startCheckoutAction(formData: FormData) {
   }
 
   const fulfillment = formData.get("fulfillment") === "delivery" ? "delivery" : "pickup";
+  const firstName = String(formData.get("firstName") ?? "").trim();
+  const lastName = String(formData.get("lastName") ?? "").trim();
+  if (!firstName || !lastName) {
+    redirect("/checkout?error=name");
+  }
   const email =
     String(formData.get("email") ?? "").trim().toLowerCase() ||
     session?.user?.email ||
@@ -72,6 +77,8 @@ export async function startCheckoutAction(formData: FormData) {
 
   const order = await createPendingOrder({
     cart,
+    firstName,
+    lastName,
     email,
     phone,
     userId: session?.user?.id,

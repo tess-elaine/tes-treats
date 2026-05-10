@@ -39,6 +39,8 @@ export const orders = pgTable("order", {
   // Human-friendly number for Tess; generated on insert (e.g. "TT-1042").
   number: text("number").notNull().unique(),
   userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
   // Guest-checkout email if not signed in.
   email: text("email").notNull(),
   phone: text("phone"),

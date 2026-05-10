@@ -99,7 +99,7 @@ export function CartButton({ count }: { count: number }) {
               Checkout
             </BiteButton>
             <BiteButton href="/cart" size="md" variant="secondary" biteColor="var(--color-surface-container-lowest)" onClick={() => setOpen(false)}>
-              View full cart
+              View Cart
             </BiteButton>
           </div>
         </div>
