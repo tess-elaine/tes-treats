@@ -102,7 +102,20 @@ export default async function AdminOrdersPage({
                     </Link>
                   </Td>
                   <Td>{o.email}</Td>
-                  <Td className="capitalize">{o.fulfillment}</Td>
+                  <Td>
+                    <span className={`inline-block rounded-full px-2 py-0.5 font-label text-[10px] uppercase tracking-wider ${
+                      o.fulfillment === "pickup"
+                        ? "bg-primary/10 text-primary"
+                        : "bg-secondary-container text-on-secondary-container"
+                    }`}>
+                      {o.fulfillment}
+                    </span>
+                    {o.fulfillmentDate && (
+                      <span className="mt-0.5 block text-xs text-on-surface-variant">
+                        {formatDate(o.fulfillmentDate)}
+                      </span>
+                    )}
+                  </Td>
                   <Td>{formatCents(o.totalCents)}</Td>
                   <Td className="capitalize">{STATUS_LABEL[o.status] ?? o.status}</Td>
                   <Td>{formatDate(o.createdAt)}</Td>
