@@ -42,7 +42,7 @@ export function RecipeStepsClient({
   return (
     <div className="space-y-3">
       {steps.length > 0 && (
-        <ol className="space-y-2">
+        <ol className="space-y-1">
           {steps.map((step, idx) => (
             <li
               key={step.id}
@@ -65,14 +65,14 @@ export function RecipeStepsClient({
               }}
               onDragEnd={() => { setDragOverIdx(null); dragIdx.current = null; }}
               className={[
-                "flex gap-3 rounded-md p-2 transition-colors",
+                "grid grid-cols-[1rem_1.75rem_1fr_1rem] items-start gap-x-3 rounded-md px-2 py-2 transition-colors",
                 dragOverIdx === idx ? "bg-primary-fixed/40" : "hover:bg-surface-container-high/50",
               ].filter(Boolean).join(" ")}
             >
               {/* Drag handle */}
               <span
                 className={[
-                  "mt-2 select-none text-lg leading-none text-on-surface-variant/30",
+                  "pt-px select-none text-sm leading-5 text-on-surface-variant/30",
                   editingId !== step.id ? "cursor-grab" : "cursor-default opacity-0",
                 ].join(" ")}
               >
@@ -80,12 +80,12 @@ export function RecipeStepsClient({
               </span>
 
               {/* Step number */}
-              <span className="mt-2 min-w-[1.5rem] font-label text-sm font-bold text-primary">
+              <span className="pt-px text-right font-label text-sm font-bold leading-5 text-primary tabular-nums">
                 {idx + 1}.
               </span>
 
               {/* Content or editor */}
-              <div className="flex-1">
+              <div className="min-w-0">
                 {editingId === step.id ? (
                   <div className="space-y-2">
                     <textarea
@@ -120,7 +120,7 @@ export function RecipeStepsClient({
                   </div>
                 ) : (
                   <p
-                    className="mt-1.5 cursor-text font-body text-sm leading-relaxed text-on-surface"
+                    className="cursor-text font-body text-sm leading-5 text-on-surface"
                     onClick={() => startEdit(step)}
                     title="Click to edit"
                   >
@@ -129,21 +129,23 @@ export function RecipeStepsClient({
                 )}
               </div>
 
-              {/* Delete */}
-              {editingId !== step.id && (
-                <button
-                  type="button"
-                  disabled={isPending}
-                  onClick={() => startTransition(async () => {
-                    await deleteRecipeStepAction(step.id, productId, recipeId);
-                    setSteps((l) => l.filter((s) => s.id !== step.id));
-                  })}
-                  className="mt-2 text-on-surface-variant/30 hover:text-on-error-container transition-colors disabled:opacity-40"
-                  aria-label="Delete step"
-                >
-                  <TrashIcon />
-                </button>
-              )}
+              {/* Delete — always rendered to hold the grid column */}
+              <div className="pt-px">
+                {editingId !== step.id && (
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => startTransition(async () => {
+                      await deleteRecipeStepAction(step.id, productId, recipeId);
+                      setSteps((l) => l.filter((s) => s.id !== step.id));
+                    })}
+                    className="text-on-surface-variant/30 hover:text-on-error-container transition-colors disabled:opacity-40"
+                    aria-label="Delete step"
+                  >
+                    <TrashIcon />
+                  </button>
+                )}
+              </div>
             </li>
           ))}
         </ol>
