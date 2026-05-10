@@ -5,7 +5,7 @@ import { NibbleCard } from "@/components/ui/nibble-card";
 import { db } from "@/db";
 import { formatCents, formatDate } from "@/lib/format";
 import { phaseOf, inventoryRemaining } from "@/lib/drops";
-import { addToCartAction } from "@/app/(site)/cart/actions";
+import { AddToCartForm } from "@/components/site/add-to-cart-form";
 
 export const dynamic = "force-dynamic";
 
@@ -114,7 +114,7 @@ export default async function DropPage({
                 <p className="font-headline text-3xl font-bold text-on-surface">
                   {formatCents(drop.assortedBoxPriceCents)}
                 </p>
-                <form action={addToCartAction} className="mt-4">
+                <AddToCartForm itemName="Assorted Box" className="mt-4">
                   <input type="hidden" name="kind" value="drop_box" />
                   <input type="hidden" name="dropId" value={drop.id} />
                   <input type="hidden" name="quantity" value={1} />
@@ -131,7 +131,7 @@ export default async function DropPage({
                         ? "Sold out"
                         : "Add box to cart"}
                   </BiteButton>
-                </form>
+                </AddToCartForm>
               </div>
             </div>
           </NibbleCard>
@@ -169,7 +169,7 @@ export default async function DropPage({
                             </p>
                           ) : null}
                         </div>
-                        <form action={addToCartAction}>
+                        <AddToCartForm itemName={`${p.name} — Dozen`}>
                           <input type="hidden" name="kind" value="drop_dozen" />
                           <input type="hidden" name="dropItemId" value={di.id} />
                           <input type="hidden" name="quantity" value={1} />
@@ -180,7 +180,7 @@ export default async function DropPage({
                           >
                             {!isOpen ? "—" : remaining === 0 ? "Sold out" : "Add dozen"}
                           </BiteButton>
-                        </form>
+                        </AddToCartForm>
                       </div>
                     </div>
                   </NibbleCard>

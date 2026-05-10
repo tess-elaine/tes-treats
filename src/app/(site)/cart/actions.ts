@@ -36,6 +36,32 @@ export async function addToCartAction(formData: FormData) {
   revalidatePath("/", "layout"); // refresh cart count in header
 }
 
+export async function addToCartStateAction(
+  _prev: { ok: boolean } | null,
+  formData: FormData
+): Promise<{ ok: boolean }> {
+  const kind = String(formData.get("kind") ?? "");
+  const quantity = Number(formData.get("quantity") ?? 1);
+
+  let line: RawLine | null = null;
+  if (kind === "variant") {
+    const id = String(formData.get("productVariantId") ?? "");
+    if (id) line = { kind: "variant", productVariantId: id, quantity };
+  } else if (kind === "drop_box") {
+    const id = String(formData.get("dropId") ?? "");
+    if (id) line = { kind: "drop_box", dropId: id, quantity };
+  } else if (kind === "drop_dozen") {
+    const id = String(formData.get("dropItemId") ?? "");
+    if (id) line = { kind: "drop_dozen", dropItemId: id, quantity };
+  }
+  if (!line) return { ok: false };
+
+  await addLine(line);
+  revalidatePath("/cart");
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 export async function updateQuantityAction(formData: FormData) {
   const lineId = String(formData.get("lineId") ?? "");
   const quantity = Number(formData.get("quantity") ?? 1);

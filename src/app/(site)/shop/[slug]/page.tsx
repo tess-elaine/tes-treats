@@ -7,7 +7,7 @@ import { ProductGallery } from "@/components/site/product-gallery";
 import { db } from "@/db";
 import { formatCents } from "@/lib/format";
 import { imagesForProduct } from "@/lib/products";
-import { addToCartAction } from "@/app/(site)/cart/actions";
+import { AddToCartForm } from "@/components/site/add-to-cart-form";
 import { ALLERGEN_LABELS } from "@/lib/allergens";
 
 export const dynamic = "force-dynamic";
@@ -120,7 +120,7 @@ export default async function ProductPage({
             )}
 
             <NibbleCard bite="none" className="mt-8 p-6">
-              <form action={addToCartAction} className="space-y-4">
+              <AddToCartForm itemName={product.name} className="space-y-4">
                 <input type="hidden" name="kind" value="variant" />
 
                 <fieldset>
@@ -170,7 +170,7 @@ export default async function ProductPage({
                     Add to cart — {formatCents(defaultVariant.priceCents)}
                   </BiteButton>
                 </div>
-              </form>
+              </AddToCartForm>
             </NibbleCard>
           </div>
         </div>
