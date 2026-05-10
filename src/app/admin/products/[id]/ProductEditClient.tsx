@@ -5,7 +5,6 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { BiteButton } from "@/components/ui/bite-button";
 import { NibbleCard } from "@/components/ui/nibble-card";
-import { CategoryTypeahead } from "@/components/ui/category-typeahead";
 import { batchSaveProductAction } from "../actions";
 
 type Category = { slug: string; name: string };
@@ -291,10 +290,11 @@ export function ProductEditClient({
             defaultValue={product.shortDescription ?? ""}
           />
           <div className="grid gap-4 md:grid-cols-3">
-            <CategoryTypeahead
+            <CategorySelect
               categories={categories}
-              defaultValue={currentCategorySlug}
+              defaultSlug={currentCategorySlug}
               required
+              onDirty={() => { setDetailsDirty(true); setSaveStatus("idle"); }}
             />
             <Field
               name="sortOrder"
@@ -302,10 +302,12 @@ export function ProductEditClient({
               label="Sort order"
               defaultValue={String(product.sortOrder)}
             />
-            <Field
+            <ChipInput
+              label="Chip callouts"
               name="ingredientChips"
-              label="Chip callouts (comma-separated)"
-              defaultValue={(product.ingredientChips ?? []).join(", ")}
+              initialChips={product.ingredientChips ?? []}
+              maxChips={8}
+              onDirty={() => { setDetailsDirty(true); setSaveStatus("idle"); }}
             />
           </div>
           <div className="flex flex-wrap gap-4">
@@ -645,5 +647,235 @@ function Toggle({
       />
       <span>{label}</span>
     </label>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ChipInput — multi-tag input (Odoo-style M2M tags).
+// Writes a hidden comma-separated input so the parent FormData read works.
+// ---------------------------------------------------------------------------
+
+function ChipInput({
+  label,
+  name,
+  initialChips = [],
+  maxChips = 8,
+  onDirty,
+}: {
+  label: string;
+  name: string;
+  initialChips?: string[];
+  maxChips?: number;
+  onDirty?: () => void;
+}) {
+  const [chips, setChips] = useState<string[]>(initialChips);
+  const [inputVal, setInputVal] = useState("");
+
+  function addChip(raw: string) {
+    // Support pasting comma-separated values in one go
+    const parts = raw.split(",").map((s) => s.trim()).filter(Boolean);
+    if (!parts.length) return;
+    setChips((prev) => {
+      const next = [...prev];
+      for (const p of parts) {
+        if (!next.includes(p) && next.length < maxChips) next.push(p);
+      }
+      return next;
+    });
+    setInputVal("");
+    onDirty?.();
+  }
+
+  function removeChip(idx: number) {
+    setChips((prev) => prev.filter((_, i) => i !== idx));
+    onDirty?.();
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      if (inputVal.trim()) addChip(inputVal);
+    } else if (e.key === "Backspace" && !inputVal && chips.length > 0) {
+      removeChip(chips.length - 1);
+    }
+  }
+
+  return (
+    <div>
+      <span className="font-label uppercase tracking-[0.12em] text-on-surface-variant">
+        {label}
+      </span>
+      {/* Hidden input carries the value into the parent FormData */}
+      <input type="hidden" name={name} value={chips.join(", ")} />
+      <div className="ghost-border mt-1 flex min-h-[2.625rem] flex-wrap items-center gap-1.5 rounded-md bg-surface-container-high px-2.5 py-1.5 focus-within:bg-primary-fixed focus-within:outline-none">
+        {chips.map((chip, idx) => (
+          <span
+            key={idx}
+            className="inline-flex items-center gap-1 rounded-full bg-primary-fixed px-2.5 py-0.5 font-label text-xs font-medium text-primary"
+          >
+            {chip}
+            <button
+              type="button"
+              onClick={() => removeChip(idx)}
+              aria-label={`Remove ${chip}`}
+              className="ml-0.5 text-primary/60 hover:text-primary leading-none"
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        {chips.length < maxChips && (
+          <input
+            type="text"
+            value={inputVal}
+            onChange={(e) => setInputVal(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={() => { if (inputVal.trim()) addChip(inputVal); }}
+            placeholder={chips.length === 0 ? "Type and press Enter…" : ""}
+            className="min-w-0 flex-1 bg-transparent font-body text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none"
+          />
+        )}
+      </div>
+      <p className="mt-1 text-xs text-on-surface-variant">
+        {chips.length}/{maxChips} · press Enter or comma to add
+      </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CategorySelect — typeahead combobox that posts a slug hidden input.
+// ---------------------------------------------------------------------------
+
+function CategorySelect({
+  categories,
+  defaultSlug,
+  required,
+  onDirty,
+}: {
+  categories: Category[];
+  defaultSlug?: string;
+  required?: boolean;
+  onDirty?: () => void;
+}) {
+  const initial = categories.find((c) => c.slug === defaultSlug);
+  const [selectedSlug, setSelectedSlug] = useState(defaultSlug ?? "");
+  const [inputVal, setInputVal] = useState(initial?.name ?? "");
+  const [open, setOpen] = useState(false);
+  const [highlightIdx, setHighlightIdx] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const filtered = categories.filter(
+    (c) =>
+      c.name.toLowerCase().includes(inputVal.toLowerCase()) ||
+      c.slug.toLowerCase().includes(inputVal.toLowerCase())
+  );
+
+  function select(cat: { slug: string; name: string }) {
+    setSelectedSlug(cat.slug);
+    setInputVal(cat.name);
+    setOpen(false);
+    onDirty?.();
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (!open) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        setOpen(true);
+      }
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightIdx((i) => Math.min(i + 1, filtered.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightIdx((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (filtered[highlightIdx]) select(filtered[highlightIdx]);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  }
+
+  // Close on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (!containerRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+        // If the input text doesn't match the selected slug, restore it
+        const sel = categories.find((c) => c.slug === selectedSlug);
+        if (sel) setInputVal(sel.name);
+        else if (!selectedSlug) setInputVal("");
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSlug, categories]);
+
+  const isInvalid = inputVal.length > 0 && !selectedSlug;
+
+  return (
+    <div ref={containerRef} className="relative">
+      <span className="font-label uppercase tracking-[0.12em] text-on-surface-variant">
+        Category
+      </span>
+      {/* Hidden input carries the slug into the parent FormData */}
+      <input type="hidden" name="categorySlug" value={selectedSlug} />
+      <input
+        type="text"
+        value={inputVal}
+        required={required}
+        placeholder="Start typing…"
+        autoComplete="off"
+        onFocus={() => { setOpen(true); setHighlightIdx(0); }}
+        onChange={(e) => {
+          setInputVal(e.target.value);
+          setOpen(true);
+          setHighlightIdx(0);
+          // Clear slug when user edits away from the selected name
+          setSelectedSlug("");
+          onDirty?.();
+        }}
+        onKeyDown={handleKeyDown}
+        className={[
+          "ghost-border mt-1 w-full rounded-md bg-surface-container-high px-4 py-3 font-body text-on-surface focus:bg-primary-fixed focus:outline-none",
+          isInvalid ? "ring-1 ring-error" : "",
+        ].join(" ")}
+      />
+      {open && filtered.length > 0 && (
+        <ul className="absolute z-50 mt-1 max-h-52 w-full overflow-y-auto rounded-md border border-outline-variant/20 bg-surface-container-highest shadow-[var(--shadow-chocolate-lg)]">
+          {filtered.map((cat, idx) => (
+            <li
+              key={cat.slug}
+              onMouseDown={(e) => {
+                e.preventDefault(); // keep input focused
+                select(cat);
+              }}
+              className={[
+                "cursor-pointer px-4 py-2 font-body text-sm",
+                idx === highlightIdx
+                  ? "bg-primary-fixed text-primary"
+                  : "text-on-surface hover:bg-surface-container-low",
+              ].join(" ")}
+            >
+              {cat.name}
+            </li>
+          ))}
+        </ul>
+      )}
+      {isInvalid && (
+        <p className="mt-1 text-xs text-on-error-container">
+          Pick from the list.{" "}
+          <a href="/admin/categories/new" className="underline">
+            Create one
+          </a>{" "}
+          if needed.
+        </p>
+      )}
+    </div>
   );
 }
