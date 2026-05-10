@@ -166,7 +166,7 @@ export default async function ProductPage({
                       className="ghost-border w-20 rounded-md bg-surface-container-high px-3 py-3 text-center font-body"
                     />
                   </label>
-                  <BiteButton size="lg" className="flex-1">
+                  <BiteButton size="md" className="flex-1">
                     Add to cart — {formatCents(defaultVariant.priceCents)}
                   </BiteButton>
                 </div>
