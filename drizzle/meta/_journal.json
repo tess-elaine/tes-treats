@@ -57,6 +57,13 @@
       "when": 1746921600000,
       "tag": "0007_order_name_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1746964800000,
+      "tag": "0008_order_name_columns",
+      "breakpoints": true
     }
   ]
 }
