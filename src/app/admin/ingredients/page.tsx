@@ -5,10 +5,13 @@ import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { db } from "@/db";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { ALLERGEN_LABELS } from "@/lib/allergens";
+import { formatCents } from "@/lib/format";
 import { deleteIngredientAction } from "./actions";
 
 export const metadata = { title: "Ingredients" };
 export const dynamic = "force-dynamic";
+
+const blank = <span className="text-on-surface-variant/30">—</span>;
 
 export default async function IngredientsPage({
   searchParams,
@@ -45,73 +48,100 @@ export default async function IngredientsPage({
         </p>
       )}
 
-      <NibbleCard bite="none" className="mt-8 overflow-hidden">
+      <NibbleCard bite="none" className="mt-8 overflow-x-auto">
         {list.length === 0 ? (
           <p className="p-8 text-center text-tertiary">No ingredients yet.</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-outline-variant text-left text-on-surface-variant">
-                <th className="px-6 py-3 font-label text-xs uppercase tracking-[0.12em]">
-                  Name
-                </th>
-                <th className="px-6 py-3 font-label text-xs uppercase tracking-[0.12em]">
-                  Allergens
-                </th>
-                <th className="px-6 py-3 font-label text-xs uppercase tracking-[0.12em]">
-                  Default unit
-                </th>
-                <th className="px-6 py-3 font-label text-xs uppercase tracking-[0.12em]">
-                  Products
-                </th>
-                <th className="px-6 py-3" />
+                <th className="px-4 py-3 font-label text-xs uppercase tracking-[0.12em]">Name</th>
+                <th className="px-4 py-3 font-label text-xs uppercase tracking-[0.12em]">Unit</th>
+                <th className="px-4 py-3 font-label text-xs uppercase tracking-[0.12em]">g / unit</th>
+                <th className="px-4 py-3 font-label text-xs uppercase tracking-[0.12em]">Cost</th>
+                <th className="px-4 py-3 font-label text-xs uppercase tracking-[0.12em]">Pkg</th>
+                <th className="px-4 py-3 font-label text-xs uppercase tracking-[0.12em]">Allergens</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
-              {list.map((ing) => (
-                <tr
-                  key={ing.id}
-                  className="border-b border-outline-variant/40 hover:bg-surface-container-low"
-                >
-                  <td className="px-6 py-3 font-medium text-on-surface">
-                    {ing.name}
-                  </td>
-                  <td className="px-6 py-3 text-on-surface-variant">
-                    {ing.allergens.length === 0
-                      ? <span className="text-on-surface-variant/40">—</span>
-                      : ing.allergens
-                          .map((a) => ALLERGEN_LABELS[a as keyof typeof ALLERGEN_LABELS] ?? a)
-                          .join(", ")}
-                  </td>
-                  <td className="px-6 py-3 text-on-surface-variant">
-                    {ing.defaultUnit}
-                  </td>
-                  <td className="px-6 py-3 text-on-surface-variant">
-                    {ing.productIngredients.length}
-                  </td>
-                  <td className="px-6 py-3 text-right">
-                    <div className="flex items-center justify-end gap-4">
-                      <Link
-                        href={`/admin/ingredients/${ing.id}/edit`}
-                        className="font-label text-xs uppercase tracking-[0.1em] text-primary hover:underline"
-                      >
-                        Edit
-                      </Link>
-                      {ing.productIngredients.length === 0 && (
-                        <form action={deleteIngredientAction}>
-                          <input type="hidden" name="id" value={ing.id} />
-                          <ConfirmSubmit
-                            message={`Delete "${ing.name}"? This cannot be undone.`}
-                            className="font-label text-xs uppercase tracking-[0.1em] text-on-surface-variant hover:text-on-error-container"
-                          >
-                            Delete
-                          </ConfirmSubmit>
-                        </form>
+              {list.map((ing) => {
+                const hasCost = ing.purchaseCostCents != null;
+                const hasPkg = ing.purchaseQuantity != null && ing.purchaseUnit;
+                const hasGrams = ing.gramsPerUnit != null && ing.defaultUnit !== "g";
+                const needsGrams = ing.defaultUnit !== "g" && !hasGrams;
+
+                return (
+                  <tr
+                    key={ing.id}
+                    className="border-b border-outline-variant/40 hover:bg-surface-container-low"
+                  >
+                    <td className="px-4 py-3 font-medium text-on-surface">
+                      {ing.name}
+                    </td>
+                    <td className="px-4 py-3 text-on-surface-variant">
+                      {ing.defaultUnit}
+                    </td>
+                    <td className="px-4 py-3">
+                      {ing.defaultUnit === "g" ? (
+                        <span className="text-on-surface-variant/30 text-xs">n/a</span>
+                      ) : needsGrams ? (
+                        <span className="text-amber-600/70">—</span>
+                      ) : (
+                        <span className="text-on-surface-variant">
+                          {parseFloat(ing.gramsPerUnit!).toLocaleString()}g
+                        </span>
                       )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-4 py-3">
+                      {hasCost ? (
+                        <span className="text-on-surface-variant">
+                          {formatCents(ing.purchaseCostCents!)}
+                        </span>
+                      ) : (
+                        <span className="text-amber-600/70">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {hasPkg ? (
+                        <span className="text-on-surface-variant">
+                          {parseFloat(ing.purchaseQuantity!).toLocaleString()} {ing.purchaseUnit}
+                        </span>
+                      ) : (
+                        <span className="text-amber-600/70">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-on-surface-variant">
+                      {ing.allergens.length === 0
+                        ? blank
+                        : ing.allergens
+                            .map((a) => ALLERGEN_LABELS[a as keyof typeof ALLERGEN_LABELS] ?? a)
+                            .join(", ")}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-4">
+                        <Link
+                          href={`/admin/ingredients/${ing.id}/edit`}
+                          className="font-label text-xs uppercase tracking-[0.1em] text-primary hover:underline"
+                        >
+                          Edit
+                        </Link>
+                        {ing.productIngredients.length === 0 && (
+                          <form action={deleteIngredientAction}>
+                            <input type="hidden" name="id" value={ing.id} />
+                            <ConfirmSubmit
+                              message={`Delete "${ing.name}"? This cannot be undone.`}
+                              className="font-label text-xs uppercase tracking-[0.1em] text-on-surface-variant hover:text-on-error-container"
+                            >
+                              Delete
+                            </ConfirmSubmit>
+                          </form>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

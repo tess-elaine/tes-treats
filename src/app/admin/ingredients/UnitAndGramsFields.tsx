@@ -108,7 +108,7 @@ export function UnitAndGramsFields({
               step="0.01"
               placeholder="3.79"
               defaultValue={initialPurchaseCost}
-              className="ghost-border w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
+              className="ghost-border h-10 w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
             />
           </div>
           <div>
@@ -120,7 +120,7 @@ export function UnitAndGramsFields({
               step="any"
               placeholder="2270"
               defaultValue={initialPurchaseQuantity}
-              className="ghost-border w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
+              className="ghost-border h-10 w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
             />
           </div>
           <div>
@@ -129,7 +129,7 @@ export function UnitAndGramsFields({
               name="purchaseUnit"
               value={purchaseUnit}
               onChange={(e) => setPurchaseUnit(e.target.value)}
-              className="ghost-border w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
+              className="ghost-border h-10 w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
             >
               <option value="">—</option>
               {compat.map((u) => (
