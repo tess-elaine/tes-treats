@@ -17,6 +17,8 @@ import { db } from "@/db";
 import { orders } from "@/db/schema/orders";
 import { customRequests } from "@/db/schema/custom_requests";
 import { getStripe } from "@/lib/stripe";
+import { sendEmail } from "@/lib/email";
+import { formatCents } from "@/lib/format";
 
 export async function POST(req: Request) {
   const stripe = getStripe();
@@ -62,6 +64,45 @@ export async function POST(req: Request) {
                 : null,
           })
           .where(eq(orders.id, orderId));
+
+        // Notify Tess of the new order.
+        const adminEmail =
+          process.env.ADMIN_NOTIFY_EMAIL ??
+          process.env.ADMIN_EMAILS?.split(",")[0]?.trim();
+        if (adminEmail) {
+          try {
+            const order = await db.query.orders.findFirst({
+              where: (t, { eq }) => eq(t.id, orderId),
+              columns: {
+                number: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                fulfillment: true,
+                totalCents: true,
+              },
+            });
+            if (order) {
+              const customerName =
+                [order.firstName, order.lastName].filter(Boolean).join(" ") ||
+                "(no name)";
+              await sendEmail({
+                to: adminEmail,
+                subject: `[TES] New order ${order.number}`,
+                html: `
+                  <p>A new order just came in.</p>
+                  <p><strong>Order:</strong> ${order.number}</p>
+                  <p><strong>Customer:</strong> ${customerName} &lt;${order.email}&gt;</p>
+                  <p><strong>Fulfillment:</strong> ${order.fulfillment}</p>
+                  <p><strong>Total:</strong> ${formatCents(order.totalCents)}</p>
+                  <p><a href="${process.env.NEXTAUTH_URL ?? ""}/admin/orders/${orderId}">View order in admin →</a></p>
+                `,
+              });
+            }
+          } catch (e) {
+            console.error("[webhook] order notification email failed", e);
+          }
+        }
       }
       // Custom-request quotes use a Stripe Payment Link, which still emits
       // checkout.session.completed events. Their metadata.kind = "custom_request".
