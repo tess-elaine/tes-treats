@@ -707,7 +707,7 @@ function ChipInput({
       </span>
       {/* Hidden input carries the value into the parent FormData */}
       <input type="hidden" name={name} value={chips.join(", ")} />
-      <div className="ghost-border mt-1 flex min-h-[2.625rem] flex-wrap items-center gap-1.5 rounded-md bg-surface-container-high px-2.5 py-1.5 focus-within:bg-primary-fixed focus-within:outline-none">
+      <div className="ghost-border mt-1 flex flex-wrap items-center gap-1.5 rounded-md bg-surface-container-high px-2.5 py-2 focus-within:bg-primary-fixed focus-within:outline-none">
         {chips.map((chip, idx) => (
           <span
             key={idx}
@@ -736,9 +736,6 @@ function ChipInput({
           />
         )}
       </div>
-      <p className="mt-1 text-xs text-on-surface-variant">
-        {chips.length}/{maxChips} · press Enter or comma to add
-      </p>
     </div>
   );
 }
@@ -842,7 +839,7 @@ function CategorySelect({
         }}
         onKeyDown={handleKeyDown}
         className={[
-          "ghost-border mt-1 w-full rounded-md bg-surface-container-high px-4 py-3 font-body text-on-surface focus:bg-primary-fixed focus:outline-none",
+          "ghost-border mt-1 w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-on-surface focus:bg-primary-fixed focus:outline-none",
           isInvalid ? "ring-1 ring-error" : "",
         ].join(" ")}
       />
