@@ -499,7 +499,7 @@ export function ProductEditClient({
 
       {/* ---- Floating save bar ---- */}
       {showBar && (
-        <div className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-between gap-4 border-t border-outline-variant bg-surface-container px-6 py-4 shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
+        <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between gap-4 border-t border-outline-variant bg-surface-container px-6 py-4 shadow-[0_-2px_12px_rgba(0,0,0,0.08)] md:left-64">
           <span className="font-label text-sm text-on-surface">
             {saveStatus === "saved"
               ? "All changes saved."
