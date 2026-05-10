@@ -136,8 +136,8 @@ export default async function AdminDashboard() {
 
 function Stat({ label, value, href }: { label: string; value: number; href: string }) {
   return (
-    <Link href={href} className="block">
-      <NibbleCard bite="none" className="p-5 transition-colors hover:bg-surface-container-low">
+    <Link href={href} className="block h-full">
+      <NibbleCard bite="none" className="h-full p-5 transition-colors hover:bg-surface-container-low">
         <p className="font-label uppercase tracking-[0.12em] text-on-surface-variant">
           {label}
         </p>
