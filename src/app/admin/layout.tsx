@@ -7,7 +7,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex min-h-screen flex-col bg-surface md:flex-row">
-      <aside className="flex flex-col bg-surface-container-high px-6 py-8 md:w-64 md:shrink-0 md:min-h-screen">
+      <aside className="flex flex-col bg-surface-container-high px-6 pt-8 pb-0 md:w-64 md:shrink-0 md:min-h-screen">
         <div className="flex-1">
           <Link
             href="/admin"
@@ -39,8 +39,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </nav>
         </div>
 
-        {/* Footer box */}
-        <div className="mt-6 rounded-xl bg-surface-container-highest p-4">
+        {/* Footer box — bleeds to sidebar edges, rounded top only */}
+        <div className="-mx-6 mt-6 rounded-t-xl bg-surface-container-highest px-6 py-5">
           <p className="truncate text-xs text-on-surface-variant">
             Signed in as <strong className="text-on-surface">{user.email}</strong>
           </p>
