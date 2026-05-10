@@ -6,10 +6,9 @@ import { requireAdmin } from "@/lib/auth-helpers";
 import { ALLERGEN_KEYS, ALLERGEN_LABELS } from "@/lib/allergens";
 import { PURCHASE_UNITS } from "@/db/schema/catalog";
 import { updateIngredientAction } from "../../actions";
+import { UnitAndGramsFields } from "../../UnitAndGramsFields";
 
 export const metadata = { title: "Edit ingredient" };
-
-const COMMON_UNITS = ["cup", "tbsp", "tsp", "oz", "g", "lb", "each", "pinch"];
 
 export default async function EditIngredientPage({
   params,
@@ -48,20 +47,10 @@ export default async function EditIngredientPage({
             />
           </div>
 
-          <div>
-            <label className="block font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant mb-2">
-              Default unit
-            </label>
-            <select
-              name="defaultUnit"
-              defaultValue={ing.defaultUnit}
-              className="ghost-border rounded-md bg-surface-container-high px-3 py-2 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
-            >
-              {COMMON_UNITS.map((u) => (
-                <option key={u} value={u}>{u}</option>
-              ))}
-            </select>
-          </div>
+          <UnitAndGramsFields
+            initialUnit={ing.defaultUnit}
+            initialGrams={ing.gramsPerUnit ?? ""}
+          />
 
           <div>
             <p className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant mb-2">
@@ -81,24 +70,6 @@ export default async function EditIngredientPage({
                 </label>
               ))}
             </div>
-          </div>
-
-          <div>
-            <label className="block font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant mb-1">
-              Grams per {ing.defaultUnit}
-            </label>
-            <input
-              name="gramsPerUnit"
-              type="number"
-              min="0"
-              step="any"
-              placeholder="125"
-              defaultValue={ing.gramsPerUnit ?? ""}
-              className="ghost-border w-40 rounded-md bg-surface-container-high px-3 py-2 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
-            />
-            <p className="mt-1 text-xs text-on-surface-variant/60">
-              How many grams in 1 {ing.defaultUnit} of this ingredient. Auto-fills gram weight in recipes when you enter in {ing.defaultUnit}s.
-            </p>
           </div>
 
           <div>
