@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, ne } from "drizzle-orm";
 import { BiteButton } from "@/components/ui/bite-button";
 import { NibbleCard } from "@/components/ui/nibble-card";
 import { db } from "@/db";
@@ -18,7 +18,7 @@ export default async function AccountPage() {
     db
       .select()
       .from(orders)
-      .where(eq(orders.userId, user.id))
+      .where(and(eq(orders.userId, user.id), ne(orders.status, "pending")))
       .orderBy(desc(orders.createdAt))
       .limit(3),
     db
@@ -30,7 +30,7 @@ export default async function AccountPage() {
     db
       .select({ c: count() })
       .from(orders)
-      .where(eq(orders.userId, user.id))
+      .where(and(eq(orders.userId, user.id), ne(orders.status, "pending")))
       .then((r) => r[0]?.c ?? 0),
     db
       .select({ c: count() })
