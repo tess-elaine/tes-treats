@@ -74,10 +74,19 @@ export default async function CustomPage({
           <form action={submitCustomRequestAction} encType="multipart/form-data" className="space-y-5">
             <div className="grid gap-3 sm:grid-cols-2">
               <Field
-                name="name"
-                label="Your name"
-                defaultValue={session?.user?.name ?? ""}
+                name="firstName"
+                label="First name"
+                defaultValue={session?.user?.name?.split(" ")[0] ?? ""}
+                required
               />
+              <Field
+                name="lastName"
+                label="Last name"
+                defaultValue={session?.user?.name?.split(" ").slice(1).join(" ") ?? ""}
+                required
+              />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
               <Field
                 name="email"
                 type="email"
@@ -85,18 +94,16 @@ export default async function CustomPage({
                 defaultValue={session?.user?.email ?? ""}
                 required
               />
+              <PhoneInput />
             </div>
-            <PhoneInput />
             <Field name="occasion" label="Occasion (wedding, baby shower, just because…)" />
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block">
-                <span className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant">
-                  Desired date (optional)
-                </span>
+                <span className="sr-only">Desired date (optional)</span>
                 <input
                   name="desiredDate"
                   type="date"
-                  className="ghost-border mt-1 h-[50px] w-full rounded-md bg-surface-container-high px-4 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
+                  className="ghost-border h-[50px] w-full rounded-md bg-surface-container-high px-4 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
                 />
               </label>
               <Field name="servings" type="number" label="Approx. how many people?" />

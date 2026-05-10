@@ -23,7 +23,9 @@ export async function submitCustomRequestAction(formData: FormData) {
     redirect("/custom?error=description");
   }
 
-  const name = String(formData.get("name") ?? "").trim() || null;
+  const firstName = String(formData.get("firstName") ?? "").trim();
+  const lastName = String(formData.get("lastName") ?? "").trim();
+  const name = [firstName, lastName].filter(Boolean).join(" ") || null;
   const phone = String(formData.get("phone") ?? "").trim() || null;
   const occasion = String(formData.get("occasion") ?? "").trim() || null;
   const desiredDate = String(formData.get("desiredDate") ?? "").trim() || null;
@@ -99,7 +101,7 @@ export async function submitCustomRequestAction(formData: FormData) {
     to: email,
     subject: "TES Treats — we got your request",
     html: `
-      <p>Hi${name ? " " + name.split(" ")[0] : ""},</p>
+      <p>Hi${firstName ? " " + firstName : ""},</p>
       <p>Your custom request <strong>${number}</strong> just landed in Tess's inbox. She typically responds within a day or two with a quote.</p>
       <p>If anything changes on your end, just reply to this email.</p>
       <p>— TES Treats</p>

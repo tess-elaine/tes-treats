@@ -21,7 +21,7 @@ export function PhoneInput({ defaultValue }: { defaultValue?: string }) {
         value={value}
         onChange={(e) => setValue(format(e.target.value))}
         placeholder="Phone (optional)"
-        className="ghost-border w-full rounded-md bg-surface-container-high px-4 py-3 font-body text-on-surface placeholder:text-on-surface-variant focus:bg-primary-fixed focus:outline-none"
+        className="ghost-border h-[50px] w-full rounded-md bg-surface-container-high px-4 font-body text-on-surface placeholder:text-on-surface-variant focus:bg-primary-fixed focus:outline-none"
       />
     </label>
   );
