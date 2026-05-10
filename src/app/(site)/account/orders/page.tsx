@@ -9,7 +9,6 @@ export const metadata = { title: "My orders" };
 export const dynamic = "force-dynamic";
 
 const STATUS_LABEL: Record<string, string> = {
-  pending: "Pending payment",
   paid: "Paid — in queue",
   in_kitchen: "Tess is baking",
   ready: "Ready",
