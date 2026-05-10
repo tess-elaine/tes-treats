@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useTransition, useMemo } from "react";
+import { useState, useRef, useTransition, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { BiteButton } from "@/components/ui/bite-button";
 import { NibbleCard } from "@/components/ui/nibble-card";
@@ -90,6 +91,10 @@ export function ProductEditClient({
 
   // Save status
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
+
+  // Portal mount — avoid SSR hydration mismatch
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // Change count — each touched variant ID counted once
   const affectedVariantIds = useMemo(() => {
@@ -497,42 +502,46 @@ export function ProductEditClient({
         </button>
       </NibbleCard>
 
-      {/* ---- Floating save bar ---- */}
-      {showBar && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between gap-4 border-t border-outline-variant bg-surface-container px-6 py-4 shadow-[0_-2px_12px_rgba(0,0,0,0.08)] md:left-64">
-          <span className="font-label text-sm text-on-surface">
-            {saveStatus === "saved"
-              ? "All changes saved."
-              : saveStatus === "error"
-              ? "Save failed — please try again."
-              : `${changeCount} unsaved ${changeCount === 1 ? "change" : "changes"}`}
-          </span>
-          {changeCount > 0 && (
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={handleDiscard}
-                disabled={isPending}
-                className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant transition-colors hover:text-on-surface disabled:opacity-40"
-              >
-                Discard
-              </button>
-              <BiteButton
-                size="md"
-                type="button"
-                onClick={handleSave}
-                disabled={isPending}
-                biteColor="var(--color-surface-container)"
-              >
-                {isPending ? "Saving…" : "Save"}
-              </BiteButton>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Spacer so content isn't hidden behind fixed bar */}
+      {/* Spacer so content isn't hidden behind the fixed bar */}
       {showBar && <div className="h-20" />}
+
+      {/* Save bar — rendered via portal directly into <body> so position:fixed
+          is always relative to the true viewport, not any CSS containing block. */}
+      {mounted &&
+        showBar &&
+        createPortal(
+          <div className="fixed bottom-0 left-0 right-0 z-[9999] flex items-center justify-between gap-4 border-t border-outline-variant bg-surface-container px-6 py-4 shadow-[0_-2px_12px_rgba(0,0,0,0.08)] md:left-64">
+            <span className="font-label text-sm text-on-surface">
+              {saveStatus === "saved"
+                ? "All changes saved."
+                : saveStatus === "error"
+                ? "Save failed — please try again."
+                : `${changeCount} unsaved ${changeCount === 1 ? "change" : "changes"}`}
+            </span>
+            {changeCount > 0 && (
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={handleDiscard}
+                  disabled={isPending}
+                  className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant transition-colors hover:text-on-surface disabled:opacity-40"
+                >
+                  Discard
+                </button>
+                <BiteButton
+                  size="md"
+                  type="button"
+                  onClick={handleSave}
+                  disabled={isPending}
+                  biteColor="var(--color-surface-container)"
+                >
+                  {isPending ? "Saving…" : "Save"}
+                </BiteButton>
+              </div>
+            )}
+          </div>,
+          document.body
+        )}
     </>
   );
 }
