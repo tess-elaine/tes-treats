@@ -1,0 +1,121 @@
+import Link from "next/link";
+import { NibbleCard } from "@/components/ui/nibble-card";
+import { BiteButton } from "@/components/ui/bite-button";
+import { ConfirmSubmit } from "@/components/ui/confirm-submit";
+import { db } from "@/db";
+import { requireAdmin } from "@/lib/auth-helpers";
+import { ALLERGEN_LABELS } from "@/lib/allergens";
+import { deleteIngredientAction } from "./actions";
+
+export const metadata = { title: "Ingredients" };
+export const dynamic = "force-dynamic";
+
+export default async function IngredientsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  await requireAdmin();
+  const { error } = await searchParams;
+
+  const list = await db.query.ingredients.findMany({
+    orderBy: (t, { asc }) => [asc(t.name)],
+    with: { productIngredients: { columns: { id: true } } },
+  });
+
+  return (
+    <section>
+      <div className="flex items-baseline justify-between">
+        <div>
+          <p className="font-label uppercase tracking-[0.2em] text-on-secondary-container">
+            Admin
+          </p>
+          <h1 className="mt-1 font-headline text-3xl font-extrabold text-primary">
+            Ingredients
+          </h1>
+        </div>
+        <BiteButton href="/admin/ingredients/new" size="md">
+          + New ingredient
+        </BiteButton>
+      </div>
+
+      {error === "in-use" && (
+        <p className="mt-4 rounded-md bg-error-container px-4 py-2 text-sm text-on-error-container">
+          That ingredient is used by one or more products and cannot be deleted.
+        </p>
+      )}
+
+      <NibbleCard bite="none" className="mt-8 overflow-hidden">
+        {list.length === 0 ? (
+          <p className="p-8 text-center text-tertiary">No ingredients yet.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-outline-variant text-left text-on-surface-variant">
+                <th className="px-6 py-3 font-label text-xs uppercase tracking-[0.12em]">
+                  Name
+                </th>
+                <th className="px-6 py-3 font-label text-xs uppercase tracking-[0.12em]">
+                  Allergens
+                </th>
+                <th className="px-6 py-3 font-label text-xs uppercase tracking-[0.12em]">
+                  Default unit
+                </th>
+                <th className="px-6 py-3 font-label text-xs uppercase tracking-[0.12em]">
+                  Products
+                </th>
+                <th className="px-6 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {list.map((ing) => (
+                <tr
+                  key={ing.id}
+                  className="border-b border-outline-variant/40 hover:bg-surface-container-low"
+                >
+                  <td className="px-6 py-3 font-medium text-on-surface">
+                    {ing.name}
+                  </td>
+                  <td className="px-6 py-3 text-on-surface-variant">
+                    {ing.allergens.length === 0
+                      ? <span className="text-on-surface-variant/40">—</span>
+                      : ing.allergens
+                          .map((a) => ALLERGEN_LABELS[a as keyof typeof ALLERGEN_LABELS] ?? a)
+                          .join(", ")}
+                  </td>
+                  <td className="px-6 py-3 text-on-surface-variant">
+                    {ing.defaultUnit}
+                  </td>
+                  <td className="px-6 py-3 text-on-surface-variant">
+                    {ing.productIngredients.length}
+                  </td>
+                  <td className="px-6 py-3 text-right">
+                    <div className="flex items-center justify-end gap-4">
+                      <Link
+                        href={`/admin/ingredients/${ing.id}/edit`}
+                        className="font-label text-xs uppercase tracking-[0.1em] text-primary hover:underline"
+                      >
+                        Edit
+                      </Link>
+                      {ing.productIngredients.length === 0 && (
+                        <form action={deleteIngredientAction}>
+                          <input type="hidden" name="id" value={ing.id} />
+                          <ConfirmSubmit
+                            message={`Delete "${ing.name}"? This cannot be undone.`}
+                            className="font-label text-xs uppercase tracking-[0.1em] text-on-surface-variant hover:text-on-error-container"
+                          >
+                            Delete
+                          </ConfirmSubmit>
+                        </form>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </NibbleCard>
+    </section>
+  );
+}

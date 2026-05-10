@@ -488,6 +488,7 @@ type VariantInput = {
   label: string;
   priceUsd: string;
   weightOz: string;
+  unitCount: string;
   sortOrder: number;
   isAvailable: boolean;
   isDefault: boolean;
@@ -554,10 +555,15 @@ export async function batchSaveProductAction(formData: FormData) {
   for (const v of variantInputs) {
     const priceCents = Math.round(Number(v.priceUsd) * 100);
     const weightOz = v.weightOz.trim() ? Number(v.weightOz.trim()) : null;
+    const unitCountRaw = v.unitCount?.trim() ? Number(v.unitCount.trim()) : null;
     const safePrice =
       Number.isFinite(priceCents) && priceCents >= 0 ? priceCents : 0;
     const safeWeight =
       weightOz !== null && Number.isFinite(weightOz) ? weightOz : null;
+    const safeUnitCount =
+      unitCountRaw !== null && Number.isFinite(unitCountRaw) && unitCountRaw > 0
+        ? Math.round(unitCountRaw)
+        : null;
 
     if (v.isNew) {
       await db.insert(productVariants).values({
@@ -565,6 +571,7 @@ export async function batchSaveProductAction(formData: FormData) {
         label: v.label || "Variant",
         priceCents: safePrice,
         weightOz: safeWeight,
+        unitCount: safeUnitCount,
         sortOrder: v.sortOrder,
         isAvailable: v.isAvailable,
         isDefault: v.isDefault,
@@ -576,6 +583,7 @@ export async function batchSaveProductAction(formData: FormData) {
           label: v.label,
           priceCents: safePrice,
           weightOz: safeWeight,
+          unitCount: safeUnitCount,
           sortOrder: v.sortOrder,
           isAvailable: v.isAvailable,
           isDefault: v.isDefault,

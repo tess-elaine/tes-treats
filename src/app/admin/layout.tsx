@@ -22,7 +22,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <NavItem href="/admin/products" label="Products" />
           <NavItem href="/admin/categories" label="Categories" />
           <NavItem href="/admin/orders" label="Orders" />
+          <NavItem href="/admin/prep" label="Prep sheet" />
           <NavItem href="/admin/abandoned-carts" label="Abandoned Carts" />
+          <NavItem href="/admin/ingredients" label="Ingredients" />
           <NavItem href="/admin/subscribers" label="Subscribers" />
           <NavItem href="/admin/config" label="Site config" />
         </nav>

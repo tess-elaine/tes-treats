@@ -64,6 +64,13 @@
       "when": 1746964800000,
       "tag": "0008_order_name_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1747094400000,
+      "tag": "0009_ingredients",
+      "breakpoints": true
     }
   ]
 }

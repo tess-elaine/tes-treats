@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { formatCents } from "@/lib/format";
 import { imagesForProduct } from "@/lib/products";
 import { addToCartAction } from "@/app/(site)/cart/actions";
+import { ALLERGEN_LABELS } from "@/lib/allergens";
 
 export const dynamic = "force-dynamic";
 
@@ -36,13 +37,21 @@ export default async function ProductPage({
   });
   if (!product || !product.isAvailable) notFound();
 
-  const [variants, images] = await Promise.all([
+  const [variants, images, productIngredients] = await Promise.all([
     db.query.productVariants.findMany({
       where: (t, { and, eq }) => and(eq(t.productId, product.id), eq(t.isAvailable, true)),
       orderBy: (t, { asc, desc }) => [desc(t.isDefault), asc(t.sortOrder)],
     }),
     imagesForProduct(product.id),
+    db.query.productIngredients.findMany({
+      where: (t, { eq }) => eq(t.productId, product.id),
+      with: { ingredient: { columns: { allergens: true } } },
+    }),
   ]);
+
+  const allergens = [
+    ...new Set(productIngredients.flatMap((pi) => pi.ingredient.allergens)),
+  ] as (keyof typeof ALLERGEN_LABELS)[];
 
   if (variants.length === 0) {
     return (
@@ -101,6 +110,14 @@ export default async function ProductPage({
             {product.description ? (
               <p className="mt-6 font-body text-on-surface">{product.description}</p>
             ) : null}
+            {allergens.length > 0 && (
+              <p className="mt-4 text-sm text-on-surface-variant">
+                <span className="font-medium text-on-surface">Contains: </span>
+                {allergens
+                  .map((a) => ALLERGEN_LABELS[a] ?? a)
+                  .join(" · ")}
+              </p>
+            )}
 
             <NibbleCard bite="none" className="mt-8 p-6">
               <form action={addToCartAction} className="space-y-4">

@@ -6,6 +6,7 @@
  * an (assorted box from dropId) row or a (dozen of a dropItemId) row. We
  * enforce "exactly one of these is set" at the application layer.
  */
+import { relations } from "drizzle-orm";
 import {
   pgTable,
   text,
@@ -102,3 +103,15 @@ export const orderItems = pgTable("order_item", {
   unitPriceCents: integer("unit_price_cents").notNull(),
   quantity: integer("quantity").notNull().default(1),
 });
+
+export const ordersRelations = relations(orders, ({ many }) => ({
+  items: many(orderItems),
+}));
+
+export const orderItemsRelations = relations(orderItems, ({ one }) => ({
+  order: one(orders, { fields: [orderItems.orderId], references: [orders.id] }),
+  productVariant: one(productVariants, {
+    fields: [orderItems.productVariantId],
+    references: [productVariants.id],
+  }),
+}));

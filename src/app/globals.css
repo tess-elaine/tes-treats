@@ -417,3 +417,19 @@
 
 
 
+
+@media print {
+  /* Hide admin chrome when printing prep sheet */
+  aside,
+  nav,
+  .print\:hidden {
+    display: none !important;
+  }
+  .print\:block {
+    display: block !important;
+  }
+  body {
+    background: white;
+    color: black;
+  }
+}

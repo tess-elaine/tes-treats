@@ -1,11 +1,17 @@
 "use client";
 
-import { useState, useRef, useTransition, useMemo, useEffect } from "react";
+import { useState, useRef, useTransition, useMemo, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { BiteButton } from "@/components/ui/bite-button";
 import { NibbleCard } from "@/components/ui/nibble-card";
 import { batchSaveProductAction } from "../actions";
+import {
+  addProductIngredientAction,
+  removeProductIngredientAction,
+  reorderProductIngredientsAction,
+  searchIngredientsAction,
+} from "@/app/admin/ingredients/actions";
 
 type Category = { slug: string; name: string };
 
@@ -14,6 +20,7 @@ type DbVariant = {
   label: string;
   priceCents: number;
   weightOz: number | null;
+  unitCount: number | null;
   sortOrder: number;
   isAvailable: boolean;
   isDefault: boolean;
@@ -25,6 +32,7 @@ type VariantState = {
   label: string;
   priceUsd: string;
   weightOz: string;
+  unitCount: string;
   sortOrder: number;
   isAvailable: boolean;
   isDefault: boolean;
@@ -41,12 +49,22 @@ type Product = {
   isFeatured: boolean;
 };
 
+type DbProductIngredient = {
+  id: string;
+  ingredientId: string;
+  quantityPerUnit: string;
+  unit: string;
+  sortOrder: number;
+  ingredient: { name: string; defaultUnit: string };
+};
+
 function toState(v: DbVariant): VariantState {
   return {
     id: v.id,
     label: v.label,
     priceUsd: (v.priceCents / 100).toFixed(2),
     weightOz: v.weightOz != null ? String(v.weightOz) : "",
+    unitCount: v.unitCount != null ? String(v.unitCount) : "",
     sortOrder: v.sortOrder,
     isAvailable: v.isAvailable,
     isDefault: v.isDefault,
@@ -60,11 +78,13 @@ export function ProductEditClient({
   variants: initialVariantData,
   categories,
   currentCategorySlug,
+  productIngredients: initialProductIngredients,
 }: {
   product: Product;
   variants: DbVariant[];
   categories: Category[];
   currentCategorySlug?: string;
+  productIngredients: DbProductIngredient[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -87,6 +107,23 @@ export function ProductEditClient({
   // Drag-and-drop
   const dragIdx = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  // Ingredient state
+  const [ingList, setIngList] = useState<DbProductIngredient[]>(initialProductIngredients);
+  const [ingSearch, setIngSearch] = useState("");
+  const [ingResults, setIngResults] = useState<{ id: string; name: string; defaultUnit: string }[]>([]);
+  const [ingQty, setIngQty] = useState("");
+  const [ingUnit, setIngUnit] = useState("");
+  const [selectedIng, setSelectedIng] = useState<{ id: string; name: string; defaultUnit: string } | null>(null);
+  const [ingPending, startIngTransition] = useTransition();
+  const ingDragIdx = useRef<number | null>(null);
+  const [ingDragOverIdx, setIngDragOverIdx] = useState<number | null>(null);
+
+  const searchIngredients = useCallback(async (q: string) => {
+    if (!q.trim()) { setIngResults([]); return; }
+    const results = await searchIngredientsAction(q);
+    setIngResults(results);
+  }, []);
 
   // Save status
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
@@ -177,6 +214,7 @@ export function ProductEditClient({
         label: "",
         priceUsd: "",
         weightOz: "",
+        unitCount: "",
         sortOrder: maxSort + 10,
         isAvailable: true,
         isDefault: isFirst,
@@ -348,6 +386,9 @@ export function ProductEditClient({
                 <th className="hidden w-24 pb-2 font-label text-xs uppercase tracking-[0.12em] sm:table-cell">
                   Weight (oz)
                 </th>
+                <th className="hidden w-20 pb-2 font-label text-xs uppercase tracking-[0.12em] sm:table-cell" title="How many individual items (cookies, muffins) are in this variant">
+                  Items
+                </th>
                 <th className="w-20 pb-2 text-center font-label text-xs uppercase tracking-[0.12em]">
                   Active
                 </th>
@@ -435,6 +476,23 @@ export function ProductEditClient({
                       )}
                     </td>
 
+                    {/* Items (unit count) */}
+                    <td className="hidden py-2 pr-3 sm:table-cell">
+                      {!isDeleted && (
+                        <input
+                          type="number"
+                          step="1"
+                          min="1"
+                          value={v.unitCount}
+                          onChange={(e) =>
+                            updateVariant(v.id, "unitCount", e.target.value)
+                          }
+                          placeholder="—"
+                          className="ghost-border w-full rounded-md bg-surface-container-high px-2 py-1.5 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
+                        />
+                      )}
+                    </td>
+
                     {/* Active */}
                     <td className="py-2 pr-3 text-center">
                       {!isDeleted && (
@@ -502,6 +560,166 @@ export function ProductEditClient({
         >
           + Add variant
         </button>
+      </NibbleCard>
+
+      {/* ---- Ingredients ---- */}
+      <NibbleCard bite="none" className="p-6 md:p-10">
+        <div className="flex items-baseline justify-between">
+          <h2 className="font-headline text-xl font-bold text-primary">Ingredients</h2>
+          <span className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant">
+            per individual item
+          </span>
+        </div>
+        <p className="mt-1 text-xs text-on-surface-variant">
+          Quantities are per individual cookie / muffin / item. Use the &ldquo;Items&rdquo; column on variants above to set how many items are in each variant.
+        </p>
+
+        {/* Existing ingredient rows */}
+        {ingList.length > 0 && (
+          <ul className="mt-4 divide-y divide-outline-variant/40">
+            {ingList.map((pi, idx) => (
+              <li
+                key={pi.id}
+                draggable
+                onDragStart={() => { ingDragIdx.current = idx; }}
+                onDragOver={(e) => { e.preventDefault(); setIngDragOverIdx(idx); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const from = ingDragIdx.current;
+                  if (from === null || from === idx) { setIngDragOverIdx(null); return; }
+                  const next = [...ingList];
+                  const [removed] = next.splice(from, 1);
+                  next.splice(idx, 0, removed);
+                  setIngList(next);
+                  ingDragIdx.current = null;
+                  setIngDragOverIdx(null);
+                  startIngTransition(async () => {
+                    await reorderProductIngredientsAction(product.id, next.map((p) => p.id));
+                  });
+                }}
+                onDragEnd={() => { setIngDragOverIdx(null); ingDragIdx.current = null; }}
+                className={[
+                  "flex items-center gap-3 py-2 transition-colors",
+                  ingDragOverIdx === idx ? "bg-primary-fixed/40" : "",
+                ].filter(Boolean).join(" ")}
+              >
+                <span className="select-none text-lg leading-none text-on-surface-variant/30 cursor-grab">⠿</span>
+                <span className="flex-1 font-medium text-on-surface">{pi.ingredient.name}</span>
+                <span className="text-sm text-on-surface-variant">{pi.quantityPerUnit} {pi.unit}</span>
+                <button
+                  type="button"
+                  disabled={ingPending}
+                  onClick={() => startIngTransition(async () => {
+                    await removeProductIngredientAction(pi.id, product.id);
+                    setIngList((l) => l.filter((x) => x.id !== pi.id));
+                  })}
+                  className="text-on-surface-variant/40 transition-colors hover:text-on-error-container disabled:opacity-40"
+                >
+                  <TrashIcon />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Add ingredient */}
+        <div className="mt-4 space-y-3">
+          <p className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant">
+            Add ingredient
+          </p>
+          {selectedIng ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-md bg-primary-fixed px-3 py-1.5 text-sm font-medium text-on-surface">
+                {selectedIng.name}
+              </span>
+              <input
+                type="number"
+                step="0.001"
+                min="0"
+                placeholder="Qty"
+                value={ingQty}
+                onChange={(e) => setIngQty(e.target.value)}
+                className="ghost-border w-24 rounded-md bg-surface-container-high px-2 py-1.5 text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
+              />
+              <input
+                type="text"
+                placeholder="unit"
+                value={ingUnit}
+                onChange={(e) => setIngUnit(e.target.value)}
+                className="ghost-border w-20 rounded-md bg-surface-container-high px-2 py-1.5 text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
+              />
+              <button
+                type="button"
+                disabled={ingPending || !ingQty}
+                onClick={() => startIngTransition(async () => {
+                  if (!selectedIng || !ingQty) return;
+                  const newRow = await addProductIngredientAction({
+                    productId: product.id,
+                    ingredientId: selectedIng.id,
+                    quantityPerUnit: ingQty,
+                    unit: ingUnit || selectedIng.defaultUnit,
+                    sortOrder: ingList.length * 10,
+                  });
+                  if (newRow) setIngList((l) => [...l, newRow]);
+                  setSelectedIng(null);
+                  setIngQty("");
+                  setIngUnit("");
+                  setIngSearch("");
+                  setIngResults([]);
+                })}
+                className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary/90 disabled:opacity-40"
+              >
+                {ingPending ? "Adding…" : "Add"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setSelectedIng(null); setIngQty(""); setIngUnit(""); setIngSearch(""); setIngResults([]); }}
+                className="text-xs text-on-surface-variant hover:underline"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div className="relative max-w-xs">
+              <input
+                type="text"
+                placeholder="Search ingredients…"
+                value={ingSearch}
+                onChange={(e) => {
+                  setIngSearch(e.target.value);
+                  searchIngredients(e.target.value);
+                }}
+                className="ghost-border w-full rounded-md bg-surface-container-high px-3 py-2 text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
+              />
+              {ingResults.length > 0 && (
+                <ul className="absolute z-10 mt-1 w-full rounded-md border border-outline-variant bg-surface-container-lowest shadow-lg">
+                  {ingResults.map((r) => (
+                    <li key={r.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedIng(r);
+                          setIngUnit(r.defaultUnit);
+                          setIngResults([]);
+                          setIngSearch("");
+                        }}
+                        className="w-full px-3 py-2 text-left text-sm text-on-surface hover:bg-surface-container-low"
+                      >
+                        {r.name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+          <p className="text-xs text-on-surface-variant">
+            Don&rsquo;t see it?{" "}
+            <a href="/admin/ingredients/new" target="_blank" className="text-primary hover:underline">
+              Add to ingredient library ↗
+            </a>
+          </p>
+        </div>
       </NibbleCard>
 
       {/* Spacer so content isn't hidden behind the fixed bar */}
