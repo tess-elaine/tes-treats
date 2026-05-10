@@ -95,7 +95,10 @@ export function RecipeStepsClient({
                 </span>
 
                 {/* Step number */}
-                <span className="text-right font-label text-sm font-bold text-primary tabular-nums">
+                <span className={[
+                  "text-right font-label text-sm font-bold text-primary tabular-nums",
+                  editingId === step.id ? "self-start pt-2" : "",
+                ].join(" ")}>
                   {idx + 1}.
                 </span>
 
