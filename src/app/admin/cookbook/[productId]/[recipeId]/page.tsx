@@ -6,6 +6,7 @@ import { NibbleCard } from "@/components/ui/nibble-card";
 import { BiteButton } from "@/components/ui/bite-button";
 import { updateRecipeAction } from "../../actions";
 import { RecipeIngredientsClient } from "./RecipeIngredientsClient";
+import { RecipeStepsClient } from "./RecipeStepsClient";
 
 export default async function RecipeEditPage({
   params,
@@ -15,7 +16,7 @@ export default async function RecipeEditPage({
   await requireAdmin();
   const { productId, recipeId } = await params;
 
-  const [product, recipe] = await Promise.all([
+  const [product, recipe, steps] = await Promise.all([
     db.query.products.findFirst({
       where: (t, { eq }) => eq(t.id, productId),
       columns: { id: true, name: true },
@@ -28,6 +29,10 @@ export default async function RecipeEditPage({
           with: { ingredient: true },
         },
       },
+    }),
+    db.query.recipeSteps.findMany({
+      where: (t, { eq }) => eq(t.recipeId, recipeId),
+      orderBy: (t, { asc }) => [asc(t.sortOrder)],
     }),
   ]);
 
@@ -71,7 +76,7 @@ export default async function RecipeEditPage({
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-5">
-        {/* Left: batch details form */}
+        {/* Left: batch details + notes */}
         <NibbleCard bite="none" className="p-6 md:p-8 lg:col-span-2">
           <h2 className="font-headline text-lg font-bold text-primary">Batch details</h2>
           <form action={action} className="mt-4 space-y-4">
@@ -168,19 +173,6 @@ export default async function RecipeEditPage({
 
             <div>
               <label className="block font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant mb-1">
-                Directions
-              </label>
-              <textarea
-                name="directions"
-                rows={10}
-                defaultValue={recipe.directions ?? ""}
-                placeholder={"1. Preheat oven to 350°F…\n2. Cream butter and sugars…"}
-                className="ghost-border w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant mb-1">
                 Notes
               </label>
               <textarea
@@ -202,8 +194,28 @@ export default async function RecipeEditPage({
           </form>
         </NibbleCard>
 
-        {/* Right: ingredients + cost */}
-        <div className="lg:col-span-3">
+        {/* Right: steps + ingredients */}
+        <div className="space-y-6 lg:col-span-3">
+          {/* Directions as numbered steps */}
+          <NibbleCard bite="none" className="p-6 md:p-8">
+            <h2 className="font-headline text-lg font-bold text-primary">Directions</h2>
+            <p className="mt-1 text-xs text-on-surface-variant">
+              Click any step to edit. Drag ⠿ to reorder.
+            </p>
+            <div className="mt-4">
+              <RecipeStepsClient
+                recipeId={recipeId}
+                productId={productId}
+                initialSteps={steps.map((s) => ({
+                  id: s.id,
+                  content: s.content,
+                  sortOrder: s.sortOrder,
+                }))}
+              />
+            </div>
+          </NibbleCard>
+
+          {/* Ingredients + cost */}
           <RecipeIngredientsClient
             recipeId={recipeId}
             productId={productId}
@@ -223,6 +235,7 @@ export default async function RecipeEditPage({
                 purchaseCostCents: ri.ingredient.purchaseCostCents,
                 purchaseQuantity: ri.ingredient.purchaseQuantity,
                 purchaseUnit: ri.ingredient.purchaseUnit,
+                gramsPerCup: ri.ingredient.gramsPerCup,
               },
             }))}
           />

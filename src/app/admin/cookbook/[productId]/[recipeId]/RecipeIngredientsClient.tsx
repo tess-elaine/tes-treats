@@ -20,6 +20,7 @@ type IngredientRef = {
   purchaseCostCents: number | null;
   purchaseQuantity: string | null;
   purchaseUnit: string | null;
+  gramsPerCup: string | null;
 };
 
 type RecipeIngredient = {
@@ -64,7 +65,6 @@ export function RecipeIngredientsClient({
   const doSearch = useCallback(async (q: string) => {
     if (!q.trim()) { setResults([]); return; }
     const r = await searchIngredientsAction(q);
-    // searchIngredientsAction returns {id, name, defaultUnit}; spread into full type
     setResults(r.map((x) => ({
       ...x,
       purchaseCostCents: null,
@@ -72,6 +72,17 @@ export function RecipeIngredientsClient({
       purchaseUnit: null,
     })));
   }, []);
+
+  // Auto-fill grams when qty or unit changes and ingredient has gramsPerCup
+  function autoFillGrams(qtyStr: string, unitStr: string, ing: IngredientRef | null) {
+    if (!ing?.gramsPerCup) return;
+    const isCups = unitStr.toLowerCase().startsWith("cup");
+    if (!isCups) return;
+    const qtyNum = parseFloat(qtyStr);
+    if (!isNaN(qtyNum)) {
+      setGrams(String(Math.round(qtyNum * parseFloat(ing.gramsPerCup))));
+    }
+  }
 
   function resetAdd() {
     setSelected(null);
@@ -233,7 +244,7 @@ export function RecipeIngredientsClient({
                   min="0"
                   placeholder="2"
                   value={qty}
-                  onChange={(e) => setQty(e.target.value)}
+                  onChange={(e) => { setQty(e.target.value); autoFillGrams(e.target.value, unit, selected); }}
                   className="ghost-border w-full rounded-md bg-surface-container-high px-2 py-1.5 text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
                 />
               </div>
@@ -243,13 +254,18 @@ export function RecipeIngredientsClient({
                   type="text"
                   placeholder="cup"
                   value={unit}
-                  onChange={(e) => setUnit(e.target.value)}
+                  onChange={(e) => { setUnit(e.target.value); autoFillGrams(qty, e.target.value, selected); }}
                   className="ghost-border w-full rounded-md bg-surface-container-high px-2 py-1.5 text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
                 />
               </div>
               <div>
                 <label className="block text-xs text-on-surface-variant mb-1">
-                  Grams <span className="opacity-50">(opt)</span>
+                  Grams
+                  {selected?.gramsPerCup && unit.toLowerCase().startsWith("cup") ? (
+                    <span className="ml-1 text-primary/60">(auto)</span>
+                  ) : (
+                    <span className="opacity-50"> (opt)</span>
+                  )}
                 </label>
                 <input
                   type="number"
@@ -310,6 +326,7 @@ export function RecipeIngredientsClient({
                         purchaseCostCents: row.ingredient.purchaseCostCents,
                         purchaseQuantity: row.ingredient.purchaseQuantity,
                         purchaseUnit: row.ingredient.purchaseUnit,
+                        gramsPerCup: row.ingredient.gramsPerCup ?? null,
                       },
                     }]);
                   }
@@ -343,6 +360,8 @@ export function RecipeIngredientsClient({
                         setUnit(r.defaultUnit);
                         setSearch("");
                         setResults([]);
+                        // Auto-fill grams if qty already entered and unit is cups
+                        if (qty) autoFillGrams(qty, r.defaultUnit, r);
                       }}
                       className="w-full px-3 py-2 text-left text-sm text-on-surface hover:bg-surface-container-low"
                     >

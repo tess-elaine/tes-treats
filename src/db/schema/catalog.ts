@@ -103,6 +103,9 @@ export const ingredients = pgTable("ingredient", {
   purchaseCostCents: integer("purchase_cost_cents"),
   purchaseQuantity: numeric("purchase_quantity", { precision: 10, scale: 4 }),
   purchaseUnit: text("purchase_unit"), // one of PURCHASE_UNITS
+  // Grams per 1 cup of this ingredient — enables auto-fill of batchQuantityGrams
+  // when a recipe uses cups. Null for non-volume-measured ingredients (eggs, etc.).
+  gramsPerCup: numeric("grams_per_cup", { precision: 10, scale: 4 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -165,6 +168,16 @@ export const recipeIngredients = pgTable("recipe_ingredient", {
   sortOrder: integer("sort_order").notNull().default(0),
 });
 
+// Numbered steps for a recipe — replaces the free-text directions column.
+export const recipeSteps = pgTable("recipe_step", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  recipeId: uuid("recipe_id")
+    .notNull()
+    .references(() => productRecipes.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
 // ---------------------------------------------------------------------------
 // Relations
 // ---------------------------------------------------------------------------
@@ -192,6 +205,14 @@ export const productRecipesRelations = relations(productRecipes, ({ one, many })
     references: [products.id],
   }),
   recipeIngredients: many(recipeIngredients),
+  recipeSteps: many(recipeSteps),
+}));
+
+export const recipeStepsRelations = relations(recipeSteps, ({ one }) => ({
+  recipe: one(productRecipes, {
+    fields: [recipeSteps.recipeId],
+    references: [productRecipes.id],
+  }),
 }));
 
 export const recipeIngredientsRelations = relations(recipeIngredients, ({ one }) => ({

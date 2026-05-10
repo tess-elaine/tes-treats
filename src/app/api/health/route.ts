@@ -13,6 +13,7 @@ export async function GET() {
     await db.execute(sql`SELECT 1 FROM "product_ingredient" LIMIT 0`);
     await db.execute(sql`SELECT 1 FROM "product_recipe" LIMIT 0`);
     await db.execute(sql`SELECT 1 FROM "recipe_ingredient" LIMIT 0`);
+    await db.execute(sql`SELECT 1 FROM "recipe_step" LIMIT 0`);
     return Response.json({ ok: true });
   } catch (err) {
     console.error("[health] schema check failed:", err);

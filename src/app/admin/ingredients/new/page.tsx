@@ -69,6 +69,23 @@ export default async function NewIngredientPage() {
           </div>
 
           <div>
+            <label className="block font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant mb-1">
+              Grams per cup
+            </label>
+            <input
+              name="gramsPerCup"
+              type="number"
+              min="0"
+              step="any"
+              placeholder="125"
+              className="ghost-border w-40 rounded-md bg-surface-container-high px-3 py-2 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
+            />
+            <p className="mt-1 text-xs text-on-surface-variant/60">
+              How many grams in 1 cup of this ingredient. Auto-fills the gram weight in recipes when you enter cups.
+            </p>
+          </div>
+
+          <div>
             <p className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant mb-3">
               Purchase cost (for recipe costing)
             </p>

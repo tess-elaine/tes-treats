@@ -7,6 +7,7 @@ import { db } from "@/db";
 import {
   productRecipes,
   recipeIngredients,
+  recipeSteps,
   productIngredients,
   ingredients,
 } from "@/db/schema/catalog";
@@ -305,5 +306,42 @@ export async function reorderRecipeIngredientsAction(
   });
   if (recipe?.isDefault) await syncProductIngredients(recipeId, productId);
 
+  revalidatePath(`/admin/cookbook/${productId}/${recipeId}`);
+}
+
+// ---------------------------------------------------------------------------
+// Recipe steps
+// ---------------------------------------------------------------------------
+
+export async function addRecipeStepAction(recipeId: string, productId: string, content: string, sortOrder: number) {
+  await requireAdmin();
+  const [row] = await db
+    .insert(recipeSteps)
+    .values({ recipeId, content, sortOrder })
+    .returning();
+  revalidatePath(`/admin/cookbook/${productId}/${recipeId}`);
+  return row;
+}
+
+export async function updateRecipeStepAction(id: string, productId: string, recipeId: string, content: string) {
+  await requireAdmin();
+  await db.update(recipeSteps).set({ content }).where(eq(recipeSteps.id, id));
+  revalidatePath(`/admin/cookbook/${productId}/${recipeId}`);
+}
+
+export async function deleteRecipeStepAction(id: string, productId: string, recipeId: string) {
+  await requireAdmin();
+  await db.delete(recipeSteps).where(eq(recipeSteps.id, id));
+  revalidatePath(`/admin/cookbook/${productId}/${recipeId}`);
+}
+
+export async function reorderRecipeStepsAction(recipeId: string, productId: string, orderedIds: string[]) {
+  await requireAdmin();
+  for (let i = 0; i < orderedIds.length; i++) {
+    await db
+      .update(recipeSteps)
+      .set({ sortOrder: i * 10 })
+      .where(and(eq(recipeSteps.id, orderedIds[i]), eq(recipeSteps.recipeId, recipeId)));
+  }
   revalidatePath(`/admin/cookbook/${productId}/${recipeId}`);
 }

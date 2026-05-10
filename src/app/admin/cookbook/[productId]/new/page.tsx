@@ -128,18 +128,6 @@ export default async function NewRecipePage({
 
             <div className="sm:col-span-2">
               <label className="block font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant mb-1">
-                Directions
-              </label>
-              <textarea
-                name="directions"
-                rows={8}
-                placeholder="1. Preheat oven to 350°F…&#10;2. Cream butter and sugars…"
-                className="ghost-border w-full rounded-md bg-surface-container-high px-3 py-2 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="block font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant mb-1">
                 Notes
               </label>
               <textarea
@@ -152,7 +140,7 @@ export default async function NewRecipePage({
           </div>
 
           <p className="text-xs text-on-surface-variant">
-            You&apos;ll add ingredients on the next screen.
+            You&apos;ll add ingredients and directions on the next screen.
           </p>
 
           <div className="flex gap-3">

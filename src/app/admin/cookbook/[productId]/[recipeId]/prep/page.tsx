@@ -11,7 +11,7 @@ export default async function PrepSheetPage({
   await requireAdmin();
   const { productId, recipeId } = await params;
 
-  const [product, recipe] = await Promise.all([
+  const [product, recipe, steps] = await Promise.all([
     db.query.products.findFirst({
       where: (t, { eq }) => eq(t.id, productId),
       columns: { id: true, name: true },
@@ -24,6 +24,10 @@ export default async function PrepSheetPage({
           with: { ingredient: { columns: { id: true, name: true, defaultUnit: true } } },
         },
       },
+    }),
+    db.query.recipeSteps.findMany({
+      where: (t, { eq }) => eq(t.recipeId, recipeId),
+      orderBy: (t, { asc }) => [asc(t.sortOrder)],
     }),
   ]);
 
@@ -40,7 +44,6 @@ export default async function PrepSheetPage({
         bakeTimeMax: recipe.bakeTimeMax,
         scoopSize: recipe.scoopSize,
         cookiesPerPan: recipe.cookiesPerPan,
-        directions: recipe.directions,
         notes: recipe.notes,
         ingredients: recipe.recipeIngredients.map((ri) => ({
           id: ri.id,
@@ -50,6 +53,7 @@ export default async function PrepSheetPage({
           batchQuantityGrams: ri.batchQuantityGrams,
           notes: ri.notes,
         })),
+        steps: steps.map((s) => ({ id: s.id, content: s.content })),
       }}
       backHref={`/admin/cookbook/${productId}/${recipeId}`}
     />

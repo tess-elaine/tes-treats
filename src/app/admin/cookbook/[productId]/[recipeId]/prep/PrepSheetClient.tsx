@@ -12,6 +12,8 @@ type Ingredient = {
   notes: string | null;
 };
 
+type Step = { id: string; content: string };
+
 type Recipe = {
   name: string;
   batchYield: number;
@@ -20,18 +22,35 @@ type Recipe = {
   bakeTimeMax: number | null;
   scoopSize: string | null;
   cookiesPerPan: number | null;
-  directions: string | null;
   notes: string | null;
   ingredients: Ingredient[];
+  steps: Step[];
 };
 
 const MULTIPLIERS = [1, 2, 3] as const;
 
 function fmt(n: number) {
-  // Display as a friendly fraction string for common baking quantities
   if (Number.isInteger(n)) return String(n);
-  const rounded = Math.round(n * 1000) / 1000;
-  return rounded.toString();
+  return (Math.round(n * 100) / 100).toString();
+}
+
+function formatAmount(ing: Ingredient, multiplier: number): string {
+  const scaledQty = parseFloat(ing.batchQuantity) * multiplier;
+  const scaledGrams = ing.batchQuantityGrams != null
+    ? parseFloat(ing.batchQuantityGrams) * multiplier
+    : null;
+
+  // If ingredient is in grams, show grams only
+  if (ing.unit === "g") {
+    return `${fmt(scaledQty)} g`;
+  }
+
+  // If we have grams as well, show "qty unit (Xg)"
+  if (scaledGrams != null) {
+    return `${fmt(scaledQty)} ${ing.unit} (${fmt(scaledGrams)}g)`;
+  }
+
+  return `${fmt(scaledQty)} ${ing.unit}`;
 }
 
 export function PrepSheetClient({
@@ -49,7 +68,6 @@ export function PrepSheetClient({
 
   return (
     <>
-      {/* Print-only styles */}
       <style>{`
         @media print {
           .no-print { display: none !important; }
@@ -148,61 +166,55 @@ export function PrepSheetClient({
         {/* Ingredients */}
         {recipe.ingredients.length > 0 && (
           <div>
-            <h2 className="font-headline text-xl font-bold text-on-surface border-b border-outline-variant pb-2">
+            <h2 className="border-b border-outline-variant pb-2 font-headline text-xl font-bold text-on-surface">
               Ingredients
             </h2>
             <table className="mt-3 w-full text-sm">
               <thead>
                 <tr className="text-left font-label text-xs uppercase tracking-wider text-on-surface-variant">
-                  <th className="pb-2 pr-4 font-medium">Ingredient</th>
-                  <th className="pb-2 pr-4 font-medium text-right">Qty</th>
-                  <th className="pb-2 pr-4 font-medium text-right">Grams</th>
+                  <th className="pb-2 pr-6 font-medium">Ingredient</th>
+                  <th className="pb-2 pr-4 font-medium">Amount</th>
                   <th className="pb-2 font-medium">Note</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/30">
-                {recipe.ingredients.map((ing) => {
-                  const scaledQty = fmt(parseFloat(ing.batchQuantity) * multiplier);
-                  const scaledGrams =
-                    ing.batchQuantityGrams != null
-                      ? fmt(parseFloat(ing.batchQuantityGrams) * multiplier)
-                      : null;
-                  return (
-                    <tr key={ing.id}>
-                      <td className="py-2 pr-4 font-medium text-on-surface">{ing.name}</td>
-                      <td className="py-2 pr-4 text-right text-on-surface-variant whitespace-nowrap">
-                        {scaledQty} {ing.unit}
-                      </td>
-                      <td className="py-2 pr-4 text-right text-on-surface-variant">
-                        {scaledGrams != null ? `${scaledGrams}g` : ""}
-                      </td>
-                      <td className="py-2 text-on-surface-variant/70 italic text-xs">
-                        {ing.notes ?? ""}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {recipe.ingredients.map((ing) => (
+                  <tr key={ing.id}>
+                    <td className="py-2 pr-6 font-medium text-on-surface">{ing.name}</td>
+                    <td className="py-2 pr-4 text-on-surface-variant whitespace-nowrap">
+                      {formatAmount(ing, multiplier)}
+                    </td>
+                    <td className="py-2 italic text-xs text-on-surface-variant/70">
+                      {ing.notes ?? ""}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         )}
 
         {/* Directions */}
-        {recipe.directions && (
+        {recipe.steps.length > 0 && (
           <div>
-            <h2 className="font-headline text-xl font-bold text-on-surface border-b border-outline-variant pb-2">
+            <h2 className="border-b border-outline-variant pb-2 font-headline text-xl font-bold text-on-surface">
               Directions
             </h2>
-            <div className="mt-3 whitespace-pre-wrap font-body text-sm leading-relaxed text-on-surface">
-              {recipe.directions}
-            </div>
+            <ol className="mt-3 space-y-3">
+              {recipe.steps.map((step, idx) => (
+                <li key={step.id} className="flex gap-3 text-sm">
+                  <span className="min-w-[1.5rem] font-bold text-primary">{idx + 1}.</span>
+                  <span className="leading-relaxed text-on-surface">{step.content}</span>
+                </li>
+              ))}
+            </ol>
           </div>
         )}
 
         {/* Notes */}
         {recipe.notes && (
           <div>
-            <h2 className="font-headline text-xl font-bold text-on-surface border-b border-outline-variant pb-2">
+            <h2 className="border-b border-outline-variant pb-2 font-headline text-xl font-bold text-on-surface">
               Notes
             </h2>
             <div className="mt-3 whitespace-pre-wrap font-body text-sm leading-relaxed text-on-surface-variant">
