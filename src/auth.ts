@@ -73,14 +73,36 @@ const magicLinkProvider = {
 
 function signInEmailHtml(url: string, host: string) {
   return `
-<!doctype html><html><body style="font-family:Newsreader,Georgia,serif;background:#fdf8f5;color:#1c1b1a;padding:32px;">
-  <div style="max-width:520px;margin:0 auto;background:#ffffff;padding:32px;">
-    <h1 style="font-family:Epilogue,sans-serif;color:#77553d;font-size:28px;margin:0 0 16px 0;">Welcome back to TES Treats</h1>
-    <p style="font-size:16px;line-height:1.6;color:#504441;">Click the button below to sign in. This link expires in an hour and works only once.</p>
-    <p style="margin:24px 0;"><a href="${url}" style="background:#77553d;color:#ffffff;padding:14px 24px;text-decoration:none;font-family:Epilogue,sans-serif;font-weight:700;display:inline-block;">Sign in to TES Treats</a></p>
-    <p style="font-size:12px;color:#827470;">If you didn&rsquo;t request this email from ${host}, you can safely ignore it.</p>
-  </div>
-</body></html>`;
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#fdf8f5;font-family:Georgia,serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+    <tr><td align="center" style="padding:32px 16px;">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:520px;background:#ffffff;">
+        <tr><td style="padding:32px;">
+          <h1 style="font-family:Arial,sans-serif;color:#77553d;font-size:26px;margin:0 0 16px 0;">Welcome back to TES Treats</h1>
+          <p style="font-size:16px;line-height:1.6;color:#504441;margin:0 0 24px 0;">Click the button below to sign in. This link expires in one hour and works only once.</p>
+
+          <!-- Bulletproof button: background on <td>, not <a>, so the full area is tappable on mobile -->
+          <table cellpadding="0" cellspacing="0" role="presentation">
+            <tr>
+              <td align="center" bgcolor="#77553d" style="border-radius:4px;">
+                <a href="${url}" target="_blank" style="display:inline-block;color:#ffffff;padding:16px 28px;text-decoration:none;font-family:Arial,sans-serif;font-size:16px;font-weight:700;line-height:1;">Sign in to TES Treats</a>
+              </td>
+            </tr>
+          </table>
+
+          <p style="font-size:13px;color:#827470;margin:24px 0 0 0;">If the button doesn&rsquo;t work, copy and paste this link into your browser:</p>
+          <p style="font-size:12px;color:#77553d;word-break:break-all;margin:8px 0 0 0;"><a href="${url}" style="color:#77553d;">${url}</a></p>
+
+          <p style="font-size:12px;color:#827470;margin:24px 0 0 0;">If you didn&rsquo;t request this from ${host}, you can safely ignore this email.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 }
 
 export const { auth, handlers, signIn, signOut } = NextAuth({

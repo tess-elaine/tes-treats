@@ -24,8 +24,8 @@ export async function SiteHeader() {
   return (
     <header className="glass-nav sticky top-0 z-50 shadow-chocolate">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        {/* Mobile (sm-and-down): 3-zone grid — hamburger | logo | account+cart */}
-        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 py-3 md:hidden">
+        {/* Mobile (below lg): 3-zone grid — hamburger | logo | account+cart */}
+        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 py-3 lg:hidden">
           <MobileNav items={NAV} />
           <div className="flex justify-center">
             <NavLogo />
@@ -36,8 +36,8 @@ export async function SiteHeader() {
           </div>
         </div>
 
-        {/* Desktop (md+): logo left, nav center-ish, account+cart right */}
-        <div className="hidden items-center justify-between gap-6 py-3 md:flex">
+        {/* Desktop (lg+): logo left, nav center-ish, account+cart right */}
+        <div className="hidden items-center justify-between gap-6 py-3 lg:flex">
           <NavLogo />
           <nav className="flex items-center gap-8" aria-label="Primary">
             {DESKTOP_NAV.map((item) => (
