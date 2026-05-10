@@ -108,7 +108,7 @@ export default async function ProductPage({
 
                 <fieldset>
                   <legend className="font-label uppercase tracking-[0.12em] text-on-surface-variant">
-                    Pick a size
+                    How many?
                   </legend>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     {variants.map((v, i) => (
