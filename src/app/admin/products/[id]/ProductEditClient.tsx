@@ -529,23 +529,6 @@ export function ProductEditClient({
         </button>
       </NibbleCard>
 
-      {/* ---- Recipes & Ingredients ---- */}
-      <NibbleCard bite="none" className="p-6 md:p-10">
-        <h2 className="font-headline text-xl font-bold text-primary">Recipes &amp; Ingredients</h2>
-        <p className="mt-2 text-sm text-on-surface-variant">
-          Ingredients and batch recipes are managed in the Cookbook section. Recipes track batch yield, bake instructions, ingredient quantities, and auto-calculate cost per cookie.
-        </p>
-        <div className="mt-4">
-          <BiteButton
-            href={`/admin/cookbook/${product.id}`}
-            size="md"
-            biteColor="var(--color-surface-container-lowest)"
-          >
-            Open Cookbook →
-          </BiteButton>
-        </div>
-      </NibbleCard>
-
       {/* Spacer so content isn't hidden behind the fixed bar */}
       {showBar && <div className="h-20" />}
 

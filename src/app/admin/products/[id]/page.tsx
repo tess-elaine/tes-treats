@@ -70,15 +70,25 @@ export default async function AdminProductDetail({
             /shop/{product.slug}
           </Link>
         </div>
-        <form action={deleteProductAction}>
-          <input type="hidden" name="id" value={product.id} />
-          <ConfirmSubmit
-            message={`Delete "${product.name}" permanently? Past orders keep their snapshots, but the product, its variants, and all images are removed.`}
-            className="font-label text-xs uppercase tracking-[0.12em] text-on-error-container hover:underline"
+        <div className="flex items-center gap-4">
+          <BiteButton
+            href={`/admin/cookbook/${product.id}`}
+            size="md"
+            variant="secondary"
+            biteColor="var(--color-surface)"
           >
-            Delete product
-          </ConfirmSubmit>
-        </form>
+            Cookbook
+          </BiteButton>
+          <form action={deleteProductAction}>
+            <input type="hidden" name="id" value={product.id} />
+            <ConfirmSubmit
+              message={`Delete "${product.name}" permanently? Past orders keep their snapshots, but the product, its variants, and all images are removed.`}
+              className="font-label text-xs uppercase tracking-[0.12em] text-on-error-container hover:underline"
+            >
+              Delete product
+            </ConfirmSubmit>
+          </form>
+        </div>
       </header>
 
       {error === "image-size" ? (
@@ -127,7 +137,7 @@ export default async function AdminProductDetail({
                   key={img.id}
                   className="rounded-md bg-surface-container-low p-3"
                 >
-                  <div className="relative aspect-square overflow-hidden rounded-md bg-surface-container-high">
+                  <div className="relative h-40 overflow-hidden rounded-md bg-surface-container-high">
                     <Image
                       src={img.url}
                       alt={img.alt ?? "Product photo"}
