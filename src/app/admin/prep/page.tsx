@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { formatDate } from "@/lib/format";
+import { BiteButton } from "@/components/ui/bite-button";
 import { PrintButton } from "./PrintButton";
 
 export const metadata = { title: "Prep sheet" };
@@ -117,12 +118,9 @@ export default async function PrepSheetPage({
             defaultValue={targetDate.toISOString().slice(0, 10)}
             className="ghost-border rounded-md bg-surface-container-high px-3 py-2 text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
           />
-          <button
-            type="submit"
-            className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-on-primary hover:bg-primary/90"
-          >
+          <BiteButton type="submit" size="md">
             Show
-          </button>
+          </BiteButton>
         </form>
       </div>
 

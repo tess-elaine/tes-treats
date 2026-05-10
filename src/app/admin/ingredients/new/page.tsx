@@ -68,10 +68,10 @@ export default async function NewIngredientPage() {
           </div>
 
           <div className="flex gap-3">
-            <BiteButton type="submit" size="md">
+            <BiteButton type="submit" size="md" biteColor="var(--color-surface-container-lowest)">
               Save ingredient
             </BiteButton>
-            <BiteButton href="/admin/ingredients" variant="secondary" size="md">
+            <BiteButton href="/admin/ingredients" variant="secondary" size="md" biteColor="var(--color-surface-container-lowest)">
               Cancel
             </BiteButton>
           </div>

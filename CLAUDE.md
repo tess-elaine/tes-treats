@@ -153,8 +153,8 @@ When making any schema change:
 - `lib/format.ts` — `formatCents()`, `formatDate()` — use these everywhere, never inline
 
 ### Components
-- `<BiteButton>` — every primary CTA. Takes `size` (`"lg"` | `"md"`), `variant` (`"primary"` | `"secondary"` | `"ghost"`), `href` (renders as `<a>`), `biteColor` (must match parent background — see below).
-- `<NibbleCard>` — card surface. Takes `bite` prop for which corner gets the scallop (`"tr"` | `"bl"` | `"none"`).
+- `<BiteButton>` — **the only button component**. Use it for every clickable action that looks like a button. Never write a raw `<button>` or `<a>` with manual `bg-primary`/`rounded-md`/`px-*` styling — that's the old pre-component approach and must not come back. Props: `size` (`"lg"` | `"md"`), `variant` (`"primary"` | `"secondary"` | `"ghost"`), `href` (renders as Next.js `<Link>`), `biteColor` (see below). Small inline text-link actions (table row actions, pagination) may remain as plain styled text links.
+- `<NibbleCard>` — card surface. `bite` prop is accepted but all positions resolve to `rounded-lg` — the scalloped-mask bite was removed from cards.
 - `<ConfirmSubmit>` — wraps a submit button with a JS `confirm()` dialog. Used for destructive admin actions.
 
 ## Design system — "The Artisanal Crumb"
@@ -174,6 +174,10 @@ Hard rules from the design doc:
 
 Buttons use cream-colored oval `<span>` overlays — NOT mask-image — to simulate
 a cookie bite at the top-right corner. This approach has zero pixel artifacts.
+
+The old `scalloped-bite-sm` / `scalloped-bite` CSS mask approach has been fully
+removed. Do not re-introduce it. Always use `<BiteButton>` — never copy its
+styles manually.
 
 ### How it works
 

@@ -648,8 +648,10 @@ export function ProductEditClient({
                 onChange={(e) => setIngUnit(e.target.value)}
                 className="ghost-border w-20 rounded-md bg-surface-container-high px-2 py-1.5 text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
               />
-              <button
+              <BiteButton
                 type="button"
+                size="md"
+                biteColor="var(--color-surface-container-lowest)"
                 disabled={ingPending || !ingQty}
                 onClick={() => startIngTransition(async () => {
                   if (!selectedIng || !ingQty) return;
@@ -667,17 +669,17 @@ export function ProductEditClient({
                   setIngSearch("");
                   setIngResults([]);
                 })}
-                className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-on-primary transition-colors hover:bg-primary/90 disabled:opacity-40"
               >
                 {ingPending ? "Adding…" : "Add"}
-              </button>
-              <button
+              </BiteButton>
+              <BiteButton
                 type="button"
+                size="md"
+                variant="ghost"
                 onClick={() => { setSelectedIng(null); setIngQty(""); setIngUnit(""); setIngSearch(""); setIngResults([]); }}
-                className="text-xs text-on-surface-variant hover:underline"
               >
                 Cancel
-              </button>
+              </BiteButton>
             </div>
           ) : (
             <div className="relative max-w-xs">
