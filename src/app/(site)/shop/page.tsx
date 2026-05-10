@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { NibbleCard } from "@/components/ui/nibble-card";
 import { IngredientChip } from "@/components/ui/ingredient-chip";
+import { QuickAddButton } from "@/components/site/quick-add-button";
 import { db } from "@/db";
 import { formatCents } from "@/lib/format";
 import { primaryImagesByProductIds } from "@/lib/products";
@@ -15,14 +16,14 @@ export default async function ShopPage() {
     orderBy: (t, { asc }) => [asc(t.sortOrder), asc(t.name)],
   });
 
-  // Pull each product's default variant for the price tag.
-  const variantsByProduct = new Map<string, { label: string; priceCents: number }>();
+  // Pull each product's default variant for price + quick-add.
+  const variantsByProduct = new Map<string, { id: string; label: string; priceCents: number }>();
   for (const p of items) {
     const v = await db.query.productVariants.findFirst({
       where: (t, { and, eq }) => and(eq(t.productId, p.id), eq(t.isAvailable, true)),
       orderBy: (t, { desc, asc }) => [desc(t.isDefault), asc(t.sortOrder)],
     });
-    if (v) variantsByProduct.set(p.id, { label: v.label, priceCents: v.priceCents });
+    if (v) variantsByProduct.set(p.id, { id: v.id, label: v.label, priceCents: v.priceCents });
   }
   const images = await primaryImagesByProductIds(items.map((p) => p.id));
 
@@ -47,13 +48,9 @@ export default async function ShopPage() {
             {items.map((p) => {
               const v = variantsByProduct.get(p.id);
               return (
-                <Link
-                  key={p.id}
-                  href={`/shop/${p.slug}`}
-                  className="group block"
-                >
-                  <NibbleCard className="flex h-full flex-col">
-                    <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-secondary-container to-tertiary-fixed">
+                <NibbleCard key={p.id} className="group flex flex-col">
+                  <Link href={`/shop/${p.slug}`} className="block">
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-t-lg bg-gradient-to-br from-secondary-container to-tertiary-fixed">
                       {images.get(p.id) ? (
                         <Image
                           src={images.get(p.id)!}
@@ -64,7 +61,7 @@ export default async function ShopPage() {
                         />
                       ) : null}
                     </div>
-                    <div className="flex flex-1 flex-col p-6">
+                    <div className="flex flex-col p-5 pb-3">
                       <div className="flex flex-wrap gap-1">
                         {(p.ingredientChips ?? []).map((c, i) => (
                           <IngredientChip key={c} tilt={i % 2 ? "right" : "left"}>
@@ -72,32 +69,46 @@ export default async function ShopPage() {
                           </IngredientChip>
                         ))}
                       </div>
-                      <h3 className="mt-3 font-headline text-xl font-bold text-primary">
+                      <h3 className="mt-3 font-headline text-xl font-bold text-primary transition-colors duration-200 group-hover:text-secondary">
                         {p.name}
                       </h3>
                       {p.shortDescription ? (
                         <p className="mt-1 text-sm text-tertiary">{p.shortDescription}</p>
                       ) : null}
-                      <div className="mt-auto flex items-end justify-between pt-6">
-                        <div>
-                          {v ? (
-                            <>
-                              <p className="font-label uppercase tracking-[0.12em] text-on-surface-variant">
-                                {v.label}
-                              </p>
-                              <p className="font-headline text-2xl font-bold text-on-surface">
-                                {formatCents(v.priceCents)}
-                              </p>
-                            </>
-                          ) : null}
-                        </div>
-                        <span className="font-label uppercase tracking-[0.12em] text-sm text-primary group-hover:text-secondary">
-                          View →
-                        </span>
-                      </div>
                     </div>
-                  </NibbleCard>
-                </Link>
+                  </Link>
+
+                  {/* Footer outside the Link — buttons can't be nested inside <a> */}
+                  <div className="mt-auto flex flex-col gap-2 px-5 pb-5 pt-2">
+                    {/* Price */}
+                    {v ? (
+                      <div>
+                        <p className="font-label text-xs uppercase tracking-widest text-on-surface-variant">
+                          {v.label}
+                        </p>
+                        <p className="font-headline text-xl font-bold text-on-surface">
+                          {formatCents(v.priceCents)}
+                        </p>
+                      </div>
+                    ) : null}
+                    {/* Action row */}
+                    <div className="flex items-center justify-between">
+                      <Link
+                        href={`/shop/${p.slug}`}
+                        className="font-label text-xs uppercase tracking-[0.12em] text-primary hover:text-secondary"
+                      >
+                        View product
+                      </Link>
+                      {v ? (
+                        <QuickAddButton
+                          variantId={v.id}
+                          productName={p.name}
+                          biteColor="var(--color-surface-container-lowest)"
+                        />
+                      ) : null}
+                    </div>
+                  </div>
+                </NibbleCard>
               );
             })}
           </div>
