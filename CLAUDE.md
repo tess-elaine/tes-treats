@@ -40,6 +40,45 @@ docker exec -i tes_treats_pg psql -U tes -d tes_treats < drizzle/XXXX.sql  # run
 
 No test suite yet. **Always run `npm run build` after changes** to catch TypeScript errors before reporting done. Also check the running dev server visually for both the public site AND admin pages affected by the change.
 
+## Production deployment — Railway
+
+**This is a live commerce site. Broken deployments cost Tess sales and trust. Treat production stability as the top constraint.**
+
+### How deploys work
+1. Push to `main` → Railway builds the Docker image (`Dockerfile`)
+2. Container starts: `node scripts/migrate.mjs && node server.js`
+3. Railway polls `GET /api/health` until it returns 200 (timeout: 120s)
+4. **Only if health check passes** does Railway cut traffic to the new container — the old deployment stays live until then
+5. If health check never passes, Railway rolls back automatically
+
+### Health check — `src/app/api/health/route.ts`
+Verifies DB connectivity **and** that the current schema is fully applied by querying columns/tables that migrations add. Returns 503 if anything is missing. **Every schema migration must be reflected here** — if you add a table or a column that customer-facing pages depend on, add a probe for it so a missed migration fails the health check rather than taking down the site.
+
+### Migration rules — `scripts/migrate.mjs`
+Railway runs migrations via the Drizzle runtime migrator (`drizzle-orm/postgres-js/migrator`), **not** `drizzle-kit`. The runtime migrator tracks applied migrations by hashing the SQL file. Migrations written manually (not via `drizzle-kit generate`) can fall out of sync with the tracker.
+
+**The reliable pattern** — always add new DDL to `migrate.mjs` as belt-and-suspenders direct SQL, alongside the migration file:
+
+```js
+// In scripts/migrate.mjs, before the migrate() call:
+await client`ALTER TABLE "my_table" ADD COLUMN IF NOT EXISTS "my_col" text`;
+await client`CREATE TABLE IF NOT EXISTS "new_table" ( ... )`;
+```
+
+Rules:
+- Always use `IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS` so statements are idempotent and safe to re-run on every deploy
+- Add the same DDL to both the `.sql` migration file (with `IF NOT EXISTS`) AND `migrate.mjs`
+- Never rely solely on the Drizzle migration tracker for columns/tables that customer-facing pages depend on
+
+### Schema change checklist
+When making any schema change:
+1. Add the migration SQL to `drizzle/XXXX_name.sql` (using `IF NOT EXISTS`)
+2. Register it in `drizzle/meta/_journal.json`
+3. Add the same DDL to `scripts/migrate.mjs` (belt-and-suspenders)
+4. Apply locally: `docker exec -i tes_treats_pg psql -U tes -d tes_treats < drizzle/XXXX_name.sql`
+5. Update `src/app/api/health/route.ts` to probe any new table/column that pages depend on
+6. Run `npm run build` — zero errors required before pushing
+
 ## Next 16 things that will bite you
 
 - **`middleware.ts` is deprecated; use `proxy.ts` with named export `proxy`.**
@@ -176,8 +215,9 @@ Ghost variant gets no bites (transparent background = no bite to show).
 2. Visually check the **public-facing page(s)** affected (dev server at :3000).
 3. Visually check the **admin page(s)** affected (sign in as admin@admin.com / password).
 4. Check **both desktop and mobile** nav when touching header/footer/nav.
-5. If schema changed: run the migration against the local Docker DB, then re-run the seed.
+5. If schema changed: follow the full **Schema change checklist** above — migration file, journal, migrate.mjs, local apply, health check update.
 6. Search the full codebase for any other files referencing the changed symbol/table/column — Drizzle schema changes ripple into lib helpers, server actions, AND public pages simultaneously.
+7. **Never push a change that breaks `/`, `/shop`, `/shop/[slug]`, or `/cart`** — these are the customer-facing purchase paths. If uncertain, verify visually before pushing.
 
 ## Copy conventions
 
