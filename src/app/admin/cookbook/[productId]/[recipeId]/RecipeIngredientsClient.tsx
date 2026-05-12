@@ -4,6 +4,7 @@ import { useState, useRef, useTransition, useCallback } from "react";
 import { BiteButton } from "@/components/ui/bite-button";
 import { NibbleCard } from "@/components/ui/nibble-card";
 import { formatCents } from "@/lib/format";
+import { toFraction } from "@/lib/fractions";
 import { calcIngredientBatchCostCents, calcTotalBatchCostCents } from "@/lib/cookbook";
 import {
   addRecipeIngredientAction,
@@ -156,7 +157,12 @@ export function RecipeIngredientsClient({
                     )}
                   </div>
                   <div className="text-right text-sm text-on-surface-variant whitespace-nowrap">
-                    <span>{ri.batchQuantity} {ri.unit}</span>
+                    <span>
+                      {ri.unit === "g"
+                        ? ri.batchQuantity
+                        : toFraction(parseFloat(ri.batchQuantity))}{" "}
+                      {ri.unit}
+                    </span>
                     {ri.batchQuantityGrams && (
                       <span className="ml-1 text-xs text-on-surface-variant/50">({ri.batchQuantityGrams}g)</span>
                     )}

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { toFraction } from "@/lib/fractions";
 
 type Ingredient = {
   id: string;
@@ -29,9 +30,9 @@ type Recipe = {
 
 const MULTIPLIERS = [1, 2, 3] as const;
 
-function fmt(n: number) {
+function fmtGrams(n: number) {
   if (Number.isInteger(n)) return String(n);
-  return (Math.round(n * 100) / 100).toString();
+  return (Math.round(n * 10) / 10).toString();
 }
 
 function formatAmount(ing: Ingredient, multiplier: number): string {
@@ -40,17 +41,17 @@ function formatAmount(ing: Ingredient, multiplier: number): string {
     ? parseFloat(ing.batchQuantityGrams) * multiplier
     : null;
 
-  // If ingredient is in grams, show grams only
+  // If ingredient is in grams, show grams only (no fractions)
   if (ing.unit === "g") {
-    return `${fmt(scaledQty)} g`;
+    return `${fmtGrams(scaledQty)} g`;
   }
 
   // If we have grams as well, show "qty unit (Xg)"
   if (scaledGrams != null) {
-    return `${fmt(scaledQty)} ${ing.unit} (${fmt(scaledGrams)}g)`;
+    return `${toFraction(scaledQty)} ${ing.unit} (${fmtGrams(scaledGrams)}g)`;
   }
 
-  return `${fmt(scaledQty)} ${ing.unit}`;
+  return `${toFraction(scaledQty)} ${ing.unit}`;
 }
 
 export function PrepSheetClient({
