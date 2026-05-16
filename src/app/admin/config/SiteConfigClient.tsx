@@ -159,7 +159,7 @@ export function SiteConfigClient({ cfg }: { cfg: Config | null | undefined }) {
         </form>
       </NibbleCard>
 
-      {changeCount > 0 && <div className="h-20" />}
+      {(changeCount > 0 || saveStatus !== "idle") && <div className="h-20" />}
       <AdminSaveBar
         changeCount={changeCount}
         saveStatus={saveStatus}
