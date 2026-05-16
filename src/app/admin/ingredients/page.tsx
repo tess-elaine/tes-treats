@@ -103,7 +103,12 @@ export default async function IngredientsPage({
                     </td>
                     <td className="px-4 py-3">
                       {ing.defaultUnit === "g" ? (
-                        <span className="text-on-surface-variant/30 text-xs">n/a</span>
+                        <span
+                          className="text-on-surface-variant/40 text-xs"
+                          title="Already measured in grams — no conversion needed"
+                        >
+                          1 g/g
+                        </span>
                       ) : needsGrams ? (
                         <span className="text-amber-600/70">—</span>
                       ) : (
