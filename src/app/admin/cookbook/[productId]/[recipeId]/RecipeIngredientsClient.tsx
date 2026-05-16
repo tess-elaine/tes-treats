@@ -4,8 +4,13 @@ import { useState, useRef, useTransition, useCallback } from "react";
 import { BiteButton } from "@/components/ui/bite-button";
 import { NibbleCard } from "@/components/ui/nibble-card";
 import { formatCents } from "@/lib/format";
-import { toFraction } from "@/lib/fractions";
-import { calcIngredientBatchCostCents, calcTotalBatchCostCents } from "@/lib/cookbook";
+import { toFraction, parseFraction } from "@/lib/fractions";
+import {
+  calcIngredientBatchCostCents,
+  calcTotalBatchCostCents,
+  compatibleRecipeUnits,
+  convertUnits,
+} from "@/lib/cookbook";
 import {
   addRecipeIngredientAction,
   removeRecipeIngredientAction,
@@ -82,28 +87,16 @@ export function RecipeIngredientsClient({
     })));
   }, []);
 
-  // Auto-fill grams when qty/unit matches the ingredient's defaultUnit
-  function autoFillGrams(qtyStr: string, unitStr: string, ing: IngredientRef | null) {
-    if (!ing?.gramsPerUnit || !ing?.defaultUnit) return;
-    const norm = (u: string) => u.toLowerCase().trim();
-    if (norm(unitStr) !== norm(ing.defaultUnit)) return;
-    if (norm(unitStr) === "g") return;
-    const qtyNum = parseFloat(qtyStr);
-    if (!isNaN(qtyNum)) {
-      setGrams(String(Math.round(qtyNum * parseFloat(ing.gramsPerUnit))));
-    }
-  }
-
-  function autoFillEditGrams(qtyStr: string, unitStr: string, ri: RecipeIngredient) {
-    const ing = ri.ingredient;
-    if (!ing.gramsPerUnit || !ing.defaultUnit) return;
-    const norm = (u: string) => u.toLowerCase().trim();
-    if (norm(unitStr) !== norm(ing.defaultUnit)) return;
-    if (norm(unitStr) === "g") return;
-    const qtyNum = parseFloat(qtyStr);
-    if (!isNaN(qtyNum)) {
-      setEditGrams(String(Math.round(qtyNum * parseFloat(ing.gramsPerUnit))));
-    }
+  // Returns gram weight string for qty+unit, or "" when not computable.
+  // Works for any unit compatible with the ingredient's defaultUnit (via convertUnits).
+  function calcAutoGrams(qtyStr: string, unitStr: string, ing: IngredientRef | null): string {
+    if (!ing?.gramsPerUnit || !ing?.defaultUnit) return "";
+    if (unitStr.toLowerCase().trim() === "g") return "";
+    const qtyNum = parseFraction(qtyStr);
+    if (qtyNum === null || !isFinite(qtyNum) || qtyNum <= 0) return "";
+    const qtyInDefault = convertUnits(qtyNum, unitStr, ing.defaultUnit);
+    if (qtyInDefault == null) return "";
+    return String(Math.round(qtyInDefault * parseFloat(ing.gramsPerUnit)));
   }
 
   function resetAdd() {
@@ -114,7 +107,8 @@ export function RecipeIngredientsClient({
 
   function startEdit(ri: RecipeIngredient) {
     setEditingIngId(ri.id);
-    setEditQty(ri.batchQuantity);
+    const raw = parseFloat(ri.batchQuantity);
+    setEditQty(ri.unit === "g" || !isFinite(raw) ? ri.batchQuantity : toFraction(raw));
     setEditUnit(ri.unit);
     setEditGrams(ri.batchQuantityGrams ?? "");
     setEditNotes(ri.notes ?? "");
@@ -125,9 +119,11 @@ export function RecipeIngredientsClient({
   }
 
   function saveEdit(ri: RecipeIngredient) {
-    if (!editQty || !editUnit) return;
+    const parsedQty = parseFraction(editQty);
+    if (parsedQty === null || !editUnit) return;
+    const batchQuantity = String(parsedQty);
     const payload = {
-      batchQuantity: editQty,
+      batchQuantity,
       unit: editUnit,
       batchQuantityGrams: editGrams || undefined,
       notes: editNotes || undefined,
@@ -135,7 +131,7 @@ export function RecipeIngredientsClient({
     setList((l) =>
       l.map((r) =>
         r.id === ri.id
-          ? { ...r, batchQuantity: editQty, unit: editUnit, batchQuantityGrams: editGrams || null, notes: editNotes || null }
+          ? { ...r, batchQuantity, unit: editUnit, batchQuantityGrams: editGrams || null, notes: editNotes || null }
           : r
       )
     );
@@ -230,14 +226,15 @@ export function RecipeIngredientsClient({
                               Qty *
                             </label>
                             <input
-                              type="number"
-                              step="any"
-                              min="0"
+                              type="text"
+                              inputMode="decimal"
                               autoFocus
+                              placeholder="1/2"
                               value={editQty}
                               onChange={(e) => {
                                 setEditQty(e.target.value);
-                                autoFillEditGrams(e.target.value, editUnit, ri);
+                                const g = calcAutoGrams(e.target.value, editUnit, ri.ingredient);
+                                if (g) setEditGrams(g);
                               }}
                               className="ghost-border w-full rounded-md bg-surface-container-high px-2 py-1.5 text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
                             />
@@ -246,15 +243,19 @@ export function RecipeIngredientsClient({
                             <label className="block text-xs text-on-surface-variant mb-1">
                               Unit *
                             </label>
-                            <input
-                              type="text"
+                            <select
                               value={editUnit}
                               onChange={(e) => {
                                 setEditUnit(e.target.value);
-                                autoFillEditGrams(editQty, e.target.value, ri);
+                                const g = calcAutoGrams(editQty, e.target.value, ri.ingredient);
+                                if (g) setEditGrams(g);
                               }}
                               className="ghost-border w-full rounded-md bg-surface-container-high px-2 py-1.5 text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
-                            />
+                            >
+                              {compatibleRecipeUnits(ri.ingredient.defaultUnit).map((u) => (
+                                <option key={u} value={u}>{u}</option>
+                              ))}
+                            </select>
                           </div>
                           <div>
                             <label className="block text-xs text-on-surface-variant mb-1">
@@ -287,7 +288,7 @@ export function RecipeIngredientsClient({
                           <BiteButton
                             type="button"
                             size="md"
-                            disabled={isPending || !editQty || !editUnit}
+                            disabled={isPending || parseFraction(editQty) === null || !editUnit}
                             biteColor="var(--color-surface-container-lowest)"
                             onClick={() => saveEdit(ri)}
                           >
@@ -440,39 +441,45 @@ export function RecipeIngredientsClient({
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <div className="sm:col-span-1">
-                <label className="block text-xs text-on-surface-variant mb-1">Qty *</label>
+                <label className="block text-xs text-on-surface-variant mb-1">
+                  Qty *{" "}
+                  <span className="font-normal opacity-50 normal-case tracking-normal">
+                    e.g. 2, 1/2, 1 1/4
+                  </span>
+                </label>
                 <input
-                  type="number"
-                  step="any"
-                  min="0"
-                  placeholder="2"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="1/2"
                   value={qty}
                   onChange={(e) => {
                     setQty(e.target.value);
-                    autoFillGrams(e.target.value, unit, selected);
+                    const g = calcAutoGrams(e.target.value, unit, selected);
+                    if (g) setGrams(g);
                   }}
                   className="ghost-border w-full rounded-md bg-surface-container-high px-2 py-1.5 text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
                 />
               </div>
               <div>
                 <label className="block text-xs text-on-surface-variant mb-1">Unit *</label>
-                <input
-                  type="text"
-                  placeholder="cup"
+                <select
                   value={unit}
                   onChange={(e) => {
                     setUnit(e.target.value);
-                    autoFillGrams(qty, e.target.value, selected);
+                    const g = calcAutoGrams(qty, e.target.value, selected);
+                    if (g) setGrams(g);
                   }}
                   className="ghost-border w-full rounded-md bg-surface-container-high px-2 py-1.5 text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
-                />
+                >
+                  {compatibleRecipeUnits(selected.defaultUnit).map((u) => (
+                    <option key={u} value={u}>{u}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-xs text-on-surface-variant mb-1">
                   Grams
-                  {selected?.gramsPerUnit &&
-                  unit.toLowerCase().trim() === selected.defaultUnit.toLowerCase().trim() &&
-                  unit.toLowerCase().trim() !== "g" ? (
+                  {calcAutoGrams(qty, unit, selected) !== "" ? (
                     <span className="ml-1 text-primary/60">(auto)</span>
                   ) : (
                     <span className="opacity-50"> (opt)</span>
@@ -509,16 +516,18 @@ export function RecipeIngredientsClient({
               <BiteButton
                 type="button"
                 size="md"
-                disabled={isPending || !qty || !unit}
+                disabled={isPending || parseFraction(qty) === null || !unit}
                 biteColor="var(--color-surface-container-lowest)"
                 onClick={() =>
                   startTransition(async () => {
-                    if (!selected || !qty || !unit) return;
+                    if (!selected || !unit) return;
+                    const parsedQty = parseFraction(qty);
+                    if (parsedQty === null) return;
                     const row = await addRecipeIngredientAction({
                       recipeId,
                       productId,
                       ingredientId: selected.id,
-                      batchQuantity: qty,
+                      batchQuantity: String(parsedQty),
                       unit,
                       batchQuantityGrams: grams || undefined,
                       notes: ingNotes || undefined,
@@ -580,7 +589,8 @@ export function RecipeIngredientsClient({
                         setUnit(r.defaultUnit);
                         setSearch("");
                         setResults([]);
-                        if (qty) autoFillGrams(qty, r.defaultUnit, r);
+                        const g = calcAutoGrams(qty, r.defaultUnit, r);
+                        if (g) setGrams(g);
                       }}
                       className="w-full px-3 py-2 text-left text-sm text-on-surface hover:bg-surface-container-low"
                     >

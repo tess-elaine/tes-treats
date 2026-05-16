@@ -39,13 +39,25 @@ const WEIGHT_TO_G: Record<string, number> = {
   kg: 1000, kilogram: 1000, kilograms: 1000,
 };
 
+// Ordered baker-friendly unit lists for recipe dropdowns.
+export const BAKER_VOLUME_UNITS = ["tsp", "tbsp", "fl oz", "cup"] as const;
+export const BAKER_WEIGHT_UNITS = ["g", "oz", "lb"] as const;
+
+// Returns the units a recipe ingredient can use, given its ingredient's defaultUnit.
+export function compatibleRecipeUnits(defaultUnit: string): string[] {
+  const d = defaultUnit.toLowerCase().trim();
+  if (d in VOLUME_TO_TSP) return [...BAKER_VOLUME_UNITS];
+  if (d in WEIGHT_TO_G) return [...BAKER_WEIGHT_UNITS];
+  return [defaultUnit]; // each, pinch, stick — no conversion
+}
+
 function n(u: string) {
   return u.toLowerCase().trim();
 }
 
 // Convert qty from `from` unit to `to` unit within the same type.
 // Returns null if units are incompatible or unknown.
-function convertUnits(qty: number, from: string, to: string): number | null {
+export function convertUnits(qty: number, from: string, to: string): number | null {
   const f = n(from);
   const t = n(to);
   if (f === t) return qty;

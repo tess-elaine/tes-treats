@@ -1,5 +1,4 @@
-// Baker-friendly fraction display for recipe quantities.
-// Snaps decimal values to the nearest common baker fraction.
+// Baker-friendly fraction display and parsing for recipe quantities.
 
 const BAKER_FRACS: [number, string][] = [
   [1 / 8,  "1/8"],
@@ -15,6 +14,34 @@ const BAKER_FRACS: [number, string][] = [
 
 // Fractional parts smaller than this snap to the nearest whole number.
 const SNAP_THRESHOLD = 1 / 16;
+
+// Parse a baker fraction string ("1/2", "1 1/4", "2") to a decimal.
+// Returns null for blank or unparseable input.
+export function parseFraction(s: string): number | null {
+  if (!s) return null;
+  const t = s.trim();
+  if (!t) return null;
+
+  // Mixed number: "1 1/2"
+  const mixed = /^(\d+)\s+(\d+)\/(\d+)$/.exec(t);
+  if (mixed) {
+    const den = parseInt(mixed[3]);
+    if (den === 0) return null;
+    return parseInt(mixed[1]) + parseInt(mixed[2]) / den;
+  }
+
+  // Simple fraction: "3/4"
+  const simple = /^(\d+)\/(\d+)$/.exec(t);
+  if (simple) {
+    const den = parseInt(simple[2]);
+    if (den === 0) return null;
+    return parseInt(simple[1]) / den;
+  }
+
+  // Plain decimal or integer
+  const num = parseFloat(t);
+  return isFinite(num) ? num : null;
+}
 
 export function toFraction(n: number): string {
   if (!isFinite(n) || n <= 0) return "0";
