@@ -23,7 +23,10 @@ export default async function IngredientsPage({
 
   const list = await db.query.ingredients.findMany({
     orderBy: (t, { asc }) => [asc(t.name)],
-    with: { productIngredients: { columns: { id: true } } },
+    with: {
+      productIngredients: { columns: { id: true } },
+      recipeIngredients: { columns: { id: true } },
+    },
   });
 
   return (
@@ -44,7 +47,7 @@ export default async function IngredientsPage({
 
       {error === "in-use" && (
         <p className="mt-4 rounded-md bg-error-container px-4 py-2 text-sm text-on-error-container">
-          That ingredient is used by one or more products and cannot be deleted.
+          That ingredient is still in use and cannot be deleted — remove it from all products and recipes first.
         </p>
       )}
 
@@ -70,14 +73,30 @@ export default async function IngredientsPage({
                 const hasPkg = ing.purchaseQuantity != null && ing.purchaseUnit;
                 const hasGrams = ing.gramsPerUnit != null && ing.defaultUnit !== "g";
                 const needsGrams = ing.defaultUnit !== "g" && !hasGrams;
+                const canDelete =
+                  ing.productIngredients.length === 0 && ing.recipeIngredients.length === 0;
+
+                const deleteBlockedTitle = (() => {
+                  const p = ing.productIngredients.length;
+                  const r = ing.recipeIngredients.length;
+                  const parts: string[] = [];
+                  if (p) parts.push(`${p} product${p === 1 ? "" : "s"}`);
+                  if (r) parts.push(`${r} recipe${r === 1 ? "" : "s"}`);
+                  return `Used in ${parts.join(" and ")} — remove from those first`;
+                })();
 
                 return (
                   <tr
                     key={ing.id}
                     className="border-b border-outline-variant/40 hover:bg-surface-container-low"
                   >
-                    <td className="px-4 py-3 font-medium text-on-surface">
-                      {ing.name}
+                    <td className="px-4 py-3 font-medium">
+                      <Link
+                        href={`/admin/ingredients/${ing.id}/edit`}
+                        className="text-primary hover:underline"
+                      >
+                        {ing.name}
+                      </Link>
                     </td>
                     <td className="px-4 py-3 text-on-surface-variant">
                       {ing.defaultUnit}
@@ -119,25 +138,24 @@ export default async function IngredientsPage({
                             .join(", ")}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-4">
-                        <Link
-                          href={`/admin/ingredients/${ing.id}/edit`}
-                          className="font-label text-xs uppercase tracking-[0.1em] text-primary hover:underline"
+                      {canDelete ? (
+                        <form action={deleteIngredientAction}>
+                          <input type="hidden" name="id" value={ing.id} />
+                          <ConfirmSubmit
+                            message={`Delete "${ing.name}"? This cannot be undone.`}
+                            className="font-label text-xs uppercase tracking-[0.1em] text-on-surface-variant hover:text-on-error-container"
+                          >
+                            Delete
+                          </ConfirmSubmit>
+                        </form>
+                      ) : (
+                        <span
+                          title={deleteBlockedTitle}
+                          className="cursor-not-allowed font-label text-xs uppercase tracking-[0.1em] text-on-surface-variant/25 select-none"
                         >
-                          Edit
-                        </Link>
-                        {ing.productIngredients.length === 0 && (
-                          <form action={deleteIngredientAction}>
-                            <input type="hidden" name="id" value={ing.id} />
-                            <ConfirmSubmit
-                              message={`Delete "${ing.name}"? This cannot be undone.`}
-                              className="font-label text-xs uppercase tracking-[0.1em] text-on-surface-variant hover:text-on-error-container"
-                            >
-                              Delete
-                            </ConfirmSubmit>
-                          </form>
-                        )}
-                      </div>
+                          Delete
+                        </span>
+                      )}
                     </td>
                   </tr>
                 );

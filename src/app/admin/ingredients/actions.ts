@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { ingredients, productIngredients } from "@/db/schema/catalog";
+import { ingredients, productIngredients, recipeIngredients } from "@/db/schema/catalog";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { ALLERGEN_KEYS, type AllergenKey } from "@/lib/allergens";
 
@@ -108,12 +108,16 @@ export async function deleteIngredientAction(formData: FormData) {
   const id = s(formData.get("id"));
   if (!id) return;
 
-  // Check if any products reference this ingredient
-  const usages = await db.query.productIngredients.findFirst({
+  // Block if any product or recipe still references this ingredient
+  const productUsage = await db.query.productIngredients.findFirst({
     where: (t, { eq }) => eq(t.ingredientId, id),
     columns: { id: true },
   });
-  if (usages) redirect("/admin/ingredients?error=in-use");
+  const recipeUsage = await db.query.recipeIngredients.findFirst({
+    where: (t, { eq }) => eq(t.ingredientId, id),
+    columns: { id: true },
+  });
+  if (productUsage || recipeUsage) redirect("/admin/ingredients?error=in-use");
 
   await db.delete(ingredients).where(eq(ingredients.id, id));
   revalidatePath("/admin/ingredients");
