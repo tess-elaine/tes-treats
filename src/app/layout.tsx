@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Epilogue, Newsreader, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import { NumberScrollFix } from "./number-scroll-fix";
 
 const epilogue = Epilogue({
   variable: "--font-epilogue",
@@ -43,7 +44,10 @@ export default function RootLayout({
       lang="en"
       className={`${epilogue.variable} ${newsreader.variable} ${jakarta.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-surface text-on-surface" suppressHydrationWarning>{children}</body>
+      <body className="min-h-full bg-surface text-on-surface" suppressHydrationWarning>
+        <NumberScrollFix />
+        {children}
+      </body>
     </html>
   );
 }
