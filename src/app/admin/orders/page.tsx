@@ -1,21 +1,24 @@
 import Link from "next/link";
 import { NibbleCard } from "@/components/ui/nibble-card";
+import { AdminSearch } from "@/components/admin/admin-search";
+import { AdminSortTh, Th } from "@/components/admin/admin-sort-th";
+import { AdminPagination } from "@/components/admin/admin-pagination";
 import { db } from "@/db";
 import { orders, orderStatus } from "@/db/schema/orders";
-import { eq, inArray, desc } from "drizzle-orm";
+import { ilike, or, and, eq, inArray, asc, desc, sql } from "drizzle-orm";
 import { formatCents, formatDate } from "@/lib/format";
 
 export const metadata = { title: "Admin · Orders" };
 export const dynamic = "force-dynamic";
 
+const PAGE_SIZE = 25;
+
 const STATUSES = orderStatus.enumValues;
 type Status = (typeof STATUSES)[number];
 type ListedStatus = Exclude<Status, "pending">;
-// Pending orders live on the Abandoned Carts page — keep them out of here.
 const LISTED_STATUSES = STATUSES.filter((s): s is ListedStatus => s !== "pending");
 
 const STATUS_LABEL: Record<string, string> = {
-  pending: "Pending",
   paid: "Paid",
   in_kitchen: "In kitchen",
   ready: "Ready",
@@ -27,30 +30,69 @@ const STATUS_LABEL: Record<string, string> = {
 export default async function AdminOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<Record<string, string>>;
 }) {
-  const { status } = await searchParams;
-  const filter: ListedStatus | null =
-    status != null && (LISTED_STATUSES as string[]).includes(status)
-      ? (status as ListedStatus)
+  const params = await searchParams;
+  const q = params.q ?? "";
+  const sort = params.sort ?? "";
+  const order = params.order ?? "desc";
+  const page = Math.max(1, parseInt(params.page ?? "1") || 1);
+  const statusFilter = params.status ?? "";
+
+  const activeStatus: ListedStatus | null =
+    statusFilter && (LISTED_STATUSES as string[]).includes(statusFilter)
+      ? (statusFilter as ListedStatus)
       : null;
 
-  const list = filter
-    ? await db
-        .select()
-        .from(orders)
-        .where(eq(orders.status, filter))
-        .orderBy(desc(orders.createdAt))
-        .limit(200)
-    : await db
-        .select()
-        .from(orders)
-        .where(inArray(orders.status, LISTED_STATUSES))
-        .orderBy(desc(orders.createdAt))
-        .limit(200);
+  const where = and(
+    inArray(orders.status, activeStatus ? [activeStatus] : LISTED_STATUSES),
+    q
+      ? or(ilike(orders.number, `%${q}%`), ilike(orders.email, `%${q}%`))
+      : undefined,
+  );
+
+  const [{ total }] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(orders)
+    .where(where);
+
+  const pageCount = Math.max(1, Math.ceil(Number(total) / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+
+  const sortExpr = (() => {
+    const dir = order === "asc" ? asc : desc;
+    if (sort === "number") return dir(orders.number);
+    if (sort === "email") return dir(orders.email);
+    if (sort === "total") return dir(orders.totalCents);
+    return desc(orders.createdAt);
+  })();
+
+  const list = await db
+    .select()
+    .from(orders)
+    .where(where)
+    .orderBy(sortExpr)
+    .limit(PAGE_SIZE)
+    .offset((safePage - 1) * PAGE_SIZE);
+
+  const searchString = new URLSearchParams(
+    Object.fromEntries(Object.entries(params).filter(([, v]) => v)),
+  ).toString();
+
+  function filterHref(status: string | null) {
+    const p = new URLSearchParams();
+    if (q) p.set("q", q);
+    if (sort) { p.set("sort", sort); p.set("order", order); }
+    if (status) p.set("status", status);
+    const qs = p.toString();
+    return qs ? `/admin/orders?${qs}` : "/admin/orders";
+  }
+
+  const isEmpty = list.length === 0;
+  const noResults = isEmpty && (q || activeStatus);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="font-label uppercase tracking-[0.2em] text-on-secondary-container">
@@ -62,35 +104,40 @@ export default async function AdminOrdersPage({
         </div>
       </header>
 
-      <nav aria-label="Filter by status" className="flex flex-wrap gap-2">
-        <FilterPill href="/admin/orders" label="All" active={!filter} />
-        {LISTED_STATUSES.map((sval) => (
-          <FilterPill
-            key={sval}
-            href={`/admin/orders?status=${sval}`}
-            label={STATUS_LABEL[sval] ?? sval}
-            active={filter === sval}
-          />
-        ))}
-      </nav>
+      <div className="flex flex-wrap items-center gap-3">
+        <AdminSearch
+          defaultValue={q}
+          searchString={searchString}
+          placeholder="Search order # or email…"
+        />
+        <nav aria-label="Filter by status" className="flex flex-wrap gap-2">
+          <FilterPill href={filterHref(null)} label="All" active={!activeStatus} />
+          {LISTED_STATUSES.map((s) => (
+            <FilterPill
+              key={s}
+              href={filterHref(s)}
+              label={STATUS_LABEL[s] ?? s}
+              active={activeStatus === s}
+            />
+          ))}
+        </nav>
+      </div>
 
-      {list.length === 0 ? (
-        <NibbleCard bite="none" className="p-10 text-center">
-          <p className="text-tertiary">
-            {filter ? `No ${STATUS_LABEL[filter]?.toLowerCase()} orders.` : "No orders yet."}
+      <NibbleCard bite="none" className="overflow-hidden">
+        {isEmpty ? (
+          <p className="p-10 text-center text-tertiary">
+            {noResults ? "No orders match your search." : "No orders yet."}
           </p>
-        </NibbleCard>
-      ) : (
-        <NibbleCard bite="none" className="overflow-hidden">
+        ) : (
           <table className="w-full text-left">
             <thead className="bg-surface-container-low">
               <tr>
-                <Th>Number</Th>
-                <Th>Customer</Th>
+                <AdminSortTh column="number" defaultOrder="desc" currentSort={sort} currentOrder={order} searchString={searchString}>Number</AdminSortTh>
+                <AdminSortTh column="email" defaultOrder="asc" currentSort={sort} currentOrder={order} searchString={searchString}>Customer</AdminSortTh>
                 <Th>Fulfillment</Th>
-                <Th>Total</Th>
+                <AdminSortTh column="total" defaultOrder="desc" currentSort={sort} currentOrder={order} searchString={searchString}>Total</AdminSortTh>
                 <Th>Status</Th>
-                <Th>Placed</Th>
+                <AdminSortTh column="placed" defaultOrder="desc" currentSort={sort} currentOrder={order} searchString={searchString}>Placed</AdminSortTh>
               </tr>
             </thead>
             <tbody>
@@ -123,8 +170,9 @@ export default async function AdminOrdersPage({
               ))}
             </tbody>
           </table>
-        </NibbleCard>
-      )}
+        )}
+        <AdminPagination page={safePage} pageCount={pageCount} total={Number(total)} searchString={searchString} />
+      </NibbleCard>
     </div>
   );
 }
@@ -144,9 +192,6 @@ function FilterPill({ href, label, active }: { href: string; label: string; acti
   );
 }
 
-function Th({ children }: { children: React.ReactNode }) {
-  return <th className="px-4 py-3 font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant">{children}</th>;
-}
 function Td({ children, className }: { children: React.ReactNode; className?: string }) {
   return <td className={`px-4 py-3 ${className ?? ""}`}>{children}</td>;
 }

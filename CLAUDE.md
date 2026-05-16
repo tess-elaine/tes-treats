@@ -218,6 +218,76 @@ Ghost variant gets no bites (transparent background = no bite to show).
 
 All admin edit pages follow the patterns established in `products/[id]/ProductEditClient.tsx`.
 
+### Admin list view standards
+
+Every admin list page must implement all of the following via URL-based search params so links are shareable and bookmarkable.
+
+**URL parameters:**
+- `q` — free-text search query
+- `sort` — column key
+- `order` — `asc` | `desc`
+- `page` — 1-indexed (default: 1, omit from URL when 1)
+- Domain-specific filters: `status`, `category`, `available`, etc.
+
+**Required features:**
+1. **Search** — `<AdminSearch>` at the top; debounces 400 ms; searches relevant text fields for the entity
+2. **Filter pills** — for categorical/boolean fields; always include an "All" pill; pills preserve `q`, `sort`, `order` when switching
+3. **Sortable column headers** — `<AdminSortTh>` for every meaningful column; non-sortable columns use `<Th>` (also from `admin-sort-th.tsx`); first click for numeric/date columns = `desc` (biggest/newest first); first click for text/alpha = `asc` (A→Z); second click = flip; third click = clear sort back to default
+4. **Pagination** — 25 rows per page (`PAGE_SIZE = 25`); `<AdminPagination>` shows "N results · page X of Y"; wrap-around: on page 1 "← Prev" jumps to last page; on last page "Next →" jumps to page 1
+
+**Shared components (`src/components/admin/`):**
+- `admin-search.tsx` — `<AdminSearch defaultValue={q} searchString={searchString} placeholder="…" />`
+- `admin-sort-th.tsx` — `<AdminSortTh column="name" defaultOrder="asc" currentSort={sort} currentOrder={order} searchString={searchString}>Name</AdminSortTh>`; also exports `<Th>` for non-sortable headers
+- `admin-pagination.tsx` — `<AdminPagination page={safePage} pageCount={pageCount} total={total} searchString={searchString} />`
+
+**Implementation pattern:**
+```ts
+const params = await searchParams;
+const q = params.q ?? "";
+const sort = params.sort ?? "";
+const order = params.order ?? "desc"; // desc is typical default for date-sorted lists
+const page = Math.max(1, parseInt(params.page ?? "1") || 1);
+
+// Build where condition
+const where = and(
+  q ? ilike(table.name, `%${q}%`) : undefined,
+  filter ? eq(table.status, filter) : undefined,
+);
+
+// Count total
+const [{ total }] = await db.select({ total: sql<number>`count(*)::int` }).from(table).where(where);
+const pageCount = Math.max(1, Math.ceil(Number(total) / PAGE_SIZE));
+const safePage = Math.min(page, pageCount);
+
+// Data query
+const list = await db.select().from(table)
+  .where(where)
+  .orderBy(/* dynamic based on sort/order */)
+  .limit(PAGE_SIZE)
+  .offset((safePage - 1) * PAGE_SIZE);
+
+// Pass to client components
+const searchString = new URLSearchParams(
+  Object.fromEntries(Object.entries(params).filter(([, v]) => v)),
+).toString();
+```
+
+**Filter pill href builder** — preserve `q`/`sort`/`order`, clear `page`:
+```ts
+function filterHref(key: string, value: string | null) {
+  const p = new URLSearchParams();
+  if (q) p.set("q", q);
+  if (sort) { p.set("sort", sort); p.set("order", order); }
+  if (value) p.set(key, value);
+  const qs = p.toString();
+  return qs ? `/admin/route?${qs}` : "/admin/route";
+}
+```
+
+**Place `<AdminPagination>` inside the `<NibbleCard>`** at the bottom, after the `</table>`. It always renders — shows "0 results" when empty (no prev/next shown when pageCount ≤ 1).
+
+**Cookbook exception:** Card grid layout — uses `<AdminSearch>` + `<AdminPagination>` but no sortable table headers.
+
 ### Save/Discard bar
 
 Every admin **edit** page must use the shared `<AdminSaveBar>` component (`src/components/ui/admin-save-bar.tsx`) instead of an inline submit button. Rules:
