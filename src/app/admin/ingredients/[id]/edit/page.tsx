@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/db";
 import { requireAdmin } from "@/lib/auth-helpers";
@@ -19,9 +20,12 @@ export default async function EditIngredientPage({
 
   return (
     <section>
-      <p className="font-label uppercase tracking-[0.2em] text-on-secondary-container">
-        Ingredients
-      </p>
+      <Link
+        href="/admin/ingredients"
+        className="font-label uppercase tracking-[0.2em] text-on-secondary-container hover:text-primary"
+      >
+        ← Ingredients
+      </Link>
       <h1 className="mt-1 font-headline text-3xl font-extrabold text-primary">
         Edit: {ing.name}
       </h1>
