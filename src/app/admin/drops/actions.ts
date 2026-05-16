@@ -45,6 +45,45 @@ async function seedDropItems(dropId: string, cookieBoxId: string, defaultDozenCe
   }
 }
 
+/** Save drop details without redirecting — used by DropEditClient save bar. */
+export async function saveDropDetailsAction(formData: FormData) {
+  await requireAdmin();
+  const id = s(formData.get("id"));
+  if (!id) return;
+
+  const newBoxId = s(formData.get("cookieBoxId")) || null;
+
+  const current = await db.query.drops.findFirst({
+    where: (t, { eq }) => eq(t.id, id),
+    columns: { cookieBoxId: true },
+  });
+
+  await db
+    .update(drops)
+    .set({
+      name: s(formData.get("name")) || undefined,
+      slug: s(formData.get("slug")) || undefined,
+      cookieBoxId: newBoxId,
+      opensAt: new Date(s(formData.get("opensAt"))),
+      closesAt: new Date(s(formData.get("closesAt"))),
+      fulfillmentStart: s(formData.get("fulfillmentStart")),
+      fulfillmentEnd: s(formData.get("fulfillmentEnd")),
+      assortedBoxPriceCents: dollarsToCents(formData.get("assortedBoxPriceUsd")),
+      assortedBoxInventory: nullableInt(formData.get("assortedBoxInventory")),
+      isPublished: formData.get("isPublished") === "on",
+      updatedAt: new Date(),
+    })
+    .where(eq(drops.id, id));
+
+  if (newBoxId && newBoxId !== current?.cookieBoxId) {
+    await db.delete(dropItems).where(eq(dropItems.dropId, id));
+    await seedDropItems(id, newBoxId, 0);
+  }
+
+  revalidatePath(`/admin/drops/${id}`);
+  revalidatePath("/admin/drops");
+}
+
 export async function createDropAction(formData: FormData) {
   await requireAdmin();
 

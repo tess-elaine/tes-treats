@@ -82,6 +82,29 @@ export async function toggleCategoryActiveAction(formData: FormData) {
   revalidatePath("/admin/categories");
 }
 
+/** Save category details without redirecting — used by CategoryEditClient save bar. */
+export async function saveCategoryAction(formData: FormData) {
+  await requireAdmin();
+  const id = s(formData.get("id"));
+  if (!id) return;
+  const name = s(formData.get("name"));
+  const slug = s(formData.get("slug")) || slugify(name);
+
+  await db
+    .update(productCategories)
+    .set({
+      name,
+      slug,
+      description: s(formData.get("description")) || null,
+      sortOrder: nullableInt(formData.get("sortOrder")) ?? 0,
+      isActive: formData.get("isActive") === "on",
+    })
+    .where(eq(productCategories.id, id));
+
+  revalidatePath("/admin/categories");
+  revalidatePath(`/admin/categories/${id}`);
+}
+
 export async function deleteCategoryAction(formData: FormData) {
   await requireAdmin();
   const id = s(formData.get("id"));

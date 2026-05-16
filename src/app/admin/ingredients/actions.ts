@@ -71,6 +71,38 @@ export async function updateIngredientAction(formData: FormData) {
   redirect("/admin/ingredients");
 }
 
+/** Save ingredient edits without redirecting — used by IngredientEditClient save bar. */
+export async function saveIngredientAction(formData: FormData) {
+  await requireAdmin();
+  const id = s(formData.get("id"));
+  if (!id) return;
+
+  const allergens = ALLERGEN_KEYS.filter(
+    (k) => formData.get(`allergen_${k}`) === "on"
+  ) as AllergenKey[];
+
+  const purchaseCostRaw = s(formData.get("purchaseCostDollars"));
+  const purchaseQuantityRaw = s(formData.get("purchaseQuantity"));
+  const purchaseUnit = s(formData.get("purchaseUnit")) || null;
+  const gramsPerUnitRaw = s(formData.get("gramsPerUnit"));
+
+  await db
+    .update(ingredients)
+    .set({
+      name: s(formData.get("name")),
+      allergens,
+      defaultUnit: s(formData.get("defaultUnit")) || "cup",
+      purchaseCostCents: purchaseCostRaw ? Math.round(parseFloat(purchaseCostRaw) * 100) : null,
+      purchaseQuantity: purchaseQuantityRaw || null,
+      purchaseUnit,
+      gramsPerUnit: gramsPerUnitRaw || null,
+    })
+    .where(eq(ingredients.id, id));
+
+  revalidatePath("/admin/ingredients");
+  revalidatePath(`/admin/ingredients/${id}/edit`);
+}
+
 export async function deleteIngredientAction(formData: FormData) {
   await requireAdmin();
   const id = s(formData.get("id"));

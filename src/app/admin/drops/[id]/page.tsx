@@ -6,17 +6,10 @@ import { NibbleCard } from "@/components/ui/nibble-card";
 import { db } from "@/db";
 import { dropSubscribers } from "@/db/schema/drops";
 import { formatCents, formatDate } from "@/lib/format";
-import { updateDropAction, updateDropItemAction, sendDropAnnouncementAction } from "../actions";
+import { updateDropItemAction, sendDropAnnouncementAction } from "../actions";
+import { DropEditClient } from "./DropEditClient";
 
 export const dynamic = "force-dynamic";
-
-function toLocalIso(d: Date | string | null | undefined) {
-  if (!d) return "";
-  const date = typeof d === "string" ? new Date(d) : d;
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 16);
-}
 
 export default async function AdminDropDetail({
   params,
@@ -90,109 +83,15 @@ export default async function AdminDropDetail({
       ) : null}
       {error === "already-sent" ? (
         <p className="rounded-md bg-error-container px-4 py-3 text-sm text-on-error-container">
-          An announcement was already sent for this drop. Tick &ldquo;Send anyway&rdquo; to resend.
+          An announcement was already sent for this drop. Tick &ldquo;Send anyway&rdquo; to
+          resend.
         </p>
       ) : null}
 
-      {/* Drop details */}
-      <NibbleCard bite="none" className="p-6 md:p-10">
-        <h2 className="font-headline text-xl font-bold text-primary">Drop details</h2>
-        <form action={updateDropAction} className="mt-4 space-y-6">
-          <input type="hidden" name="id" value={drop.id} />
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field name="name" label="Drop name" defaultValue={drop.name} required />
-            <Field name="slug" label="URL slug" defaultValue={drop.slug} required />
-          </div>
+      {/* Drop details — client component with save bar */}
+      <DropEditClient drop={drop} allBoxes={allBoxes} />
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="block">
-              <span className="font-label uppercase tracking-[0.12em] text-on-surface-variant">
-                Cookie box
-              </span>
-              <select
-                name="cookieBoxId"
-                defaultValue={drop.cookieBoxId ?? ""}
-                className="ghost-border mt-1 w-full rounded-md bg-surface-container-high px-4 py-3 font-body"
-              >
-                <option value="">— None —</option>
-                {allBoxes.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-              {drop.cookieBoxId ? (
-                <p className="mt-1 text-xs text-on-surface-variant">
-                  Changing the box will reset cookie pricing for this drop.
-                </p>
-              ) : null}
-            </label>
-            <Field
-              name="assortedBoxPriceUsd"
-              type="number"
-              label="Assorted box price ($)"
-              defaultValue={
-                drop.assortedBoxPriceCents != null
-                  ? (drop.assortedBoxPriceCents / 100).toFixed(2)
-                  : ""
-              }
-            />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field
-              name="opensAt"
-              type="datetime-local"
-              label="Opens at"
-              defaultValue={toLocalIso(drop.opensAt)}
-              required
-            />
-            <Field
-              name="closesAt"
-              type="datetime-local"
-              label="Closes at"
-              defaultValue={toLocalIso(drop.closesAt)}
-              required
-            />
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field
-              name="fulfillmentStart"
-              type="date"
-              label="Fulfillment starts"
-              defaultValue={String(drop.fulfillmentStart)}
-              required
-            />
-            <Field
-              name="fulfillmentEnd"
-              type="date"
-              label="Fulfillment ends"
-              defaultValue={String(drop.fulfillmentEnd)}
-              required
-            />
-          </div>
-
-          <Field
-            name="assortedBoxInventory"
-            type="number"
-            label="Box inventory (blank = unlimited)"
-            defaultValue={String(drop.assortedBoxInventory ?? "")}
-          />
-          <label className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              name="isPublished"
-              defaultChecked={drop.isPublished}
-              className="h-4 w-4 accent-primary"
-            />
-            <span>Published</span>
-          </label>
-
-          <BiteButton size="lg">Save changes</BiteButton>
-        </form>
-      </NibbleCard>
-
-      {/* Cookie pricing */}
+      {/* Cookie pricing — independent per-row saves */}
       {drop.items.length > 0 ? (
         <NibbleCard bite="none" className="p-6 md:p-10">
           <div className="flex flex-wrap items-baseline justify-between gap-4">
@@ -231,7 +130,7 @@ export default async function AdminDropDetail({
                         : " (unlimited)"}
                     </p>
                   </div>
-                  <Field
+                  <DropItemField
                     name="dozenPriceUsd"
                     type="number"
                     label="Dozen ($)"
@@ -242,7 +141,7 @@ export default async function AdminDropDetail({
                     }
                     placeholder="24.00"
                   />
-                  <Field
+                  <DropItemField
                     name="dozenInventory"
                     type="number"
                     label="Inventory"
@@ -287,12 +186,23 @@ export default async function AdminDropDetail({
         <p className="mt-2 text-sm text-on-surface-variant">
           Sends a one-shot &ldquo;{drop.name} is live&rdquo; email to all email subscribers.
           {drop.announcementSentAt ? (
-            <> Last sent {formatDate(drop.announcementSentAt, { dateStyle: "medium", timeStyle: "short" })}.</>
+            <>
+              {" "}
+              Last sent{" "}
+              {formatDate(drop.announcementSentAt, {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+              .
+            </>
           ) : (
             <> Hasn&rsquo;t been sent yet.</>
           )}
         </p>
-        <form action={sendDropAnnouncementAction} className="mt-4 flex flex-wrap items-end gap-4">
+        <form
+          action={sendDropAnnouncementAction}
+          className="mt-4 flex flex-wrap items-end gap-4"
+        >
           <input type="hidden" name="dropId" value={drop.id} />
           {drop.announcementSentAt ? (
             <label className="flex items-center gap-2 text-sm">
@@ -318,7 +228,7 @@ export default async function AdminDropDetail({
   );
 }
 
-function Field({
+function DropItemField({
   name,
   label,
   type = "text",

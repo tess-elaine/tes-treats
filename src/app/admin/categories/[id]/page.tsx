@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { sql } from "drizzle-orm";
-import { BiteButton } from "@/components/ui/bite-button";
-import { NibbleCard } from "@/components/ui/nibble-card";
 import { ConfirmSubmit } from "@/components/ui/confirm-submit";
 import { db } from "@/db";
 import { products } from "@/db/schema/catalog";
-import { updateCategoryAction, deleteCategoryAction } from "../actions";
+import { deleteCategoryAction } from "../actions";
+import { CategoryEditClient } from "./CategoryEditClient";
 
 export const dynamic = "force-dynamic";
 
@@ -65,45 +64,13 @@ export default async function AdminCategoryDetail({
 
       {error === "in-use" ? (
         <p className="rounded-md bg-error-container px-4 py-3 text-sm text-on-error-container">
-          Can&rsquo;t delete: {productCount} {productCount === 1 ? "product is" : "products are"}{" "}
-          still in this category. Reassign them first.
+          Can&rsquo;t delete: {productCount}{" "}
+          {productCount === 1 ? "product is" : "products are"} still in this category. Reassign
+          them first.
         </p>
       ) : null}
 
-      <NibbleCard bite="none" className="p-6 md:p-10">
-        <form action={updateCategoryAction} className="space-y-5">
-          <input type="hidden" name="id" value={cat.id} />
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field name="name" label="Name" defaultValue={cat.name} required />
-            <Field name="slug" label="Slug" defaultValue={cat.slug} />
-          </div>
-          <Field name="description" label="Description" defaultValue={cat.description ?? ""} />
-          <Field name="sortOrder" type="number" label="Sort order" defaultValue={String(cat.sortOrder)} />
-          <Toggle name="isActive" label="Active" defaultChecked={cat.isActive} />
-          <BiteButton size="lg">Save changes</BiteButton>
-        </form>
-      </NibbleCard>
+      <CategoryEditClient cat={cat} />
     </div>
-  );
-}
-
-function Field({
-  name, label, type = "text", required, defaultValue,
-}: { name: string; label: string; type?: string; required?: boolean; defaultValue?: string }) {
-  return (
-    <label className="block">
-      <span className="font-label uppercase tracking-[0.12em] text-on-surface-variant">{label}</span>
-      <input name={name} type={type} required={required} defaultValue={defaultValue}
-        className="ghost-border mt-1 w-full rounded-md bg-surface-container-high px-4 py-3 font-body text-on-surface focus:bg-primary-fixed focus:outline-none"
-      />
-    </label>
-  );
-}
-function Toggle({ name, label, defaultChecked }: { name: string; label: string; defaultChecked?: boolean }) {
-  return (
-    <label className="flex items-center gap-3">
-      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4 accent-primary" />
-      <span>{label}</span>
-    </label>
   );
 }

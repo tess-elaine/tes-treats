@@ -214,6 +214,89 @@ Both sizes use the same three-bite cluster geometry (top-right, bites going righ
 
 Ghost variant gets no bites (transparent background = no bite to show).
 
+## Admin page UI/UX standards
+
+All admin edit pages follow the patterns established in `products/[id]/ProductEditClient.tsx`.
+
+### Save/Discard bar
+
+Every admin **edit** page must use the shared `<AdminSaveBar>` component (`src/components/ui/admin-save-bar.tsx`) instead of an inline submit button. Rules:
+
+- Renders via a portal into `<body>` so `position:fixed` is relative to the true viewport.
+- `md:left-64` accounts for the 256px sidebar.
+- Left side: change count / save status message.
+- Right side: "Discard" text button + `<BiteButton size="md">Save</BiteButton>`.
+- Show a `<div className="h-20" />` spacer sibling when the bar is visible so content isn't hidden behind it.
+- Track dirty state per-section (boolean `isDirty`); increment `changeCount` by 1 per dirty section.
+- After save: call `router.refresh()` to pull fresh server data; set `saveStatus("saved")`.
+- After discard: bump a `resetKey` on the uncontrolled form to restore default values.
+
+**Pattern** (one section):
+```tsx
+const [isDirty, setIsDirty] = useState(false);
+const [resetKey, setResetKey] = useState(0);
+const [saveStatus, setSaveStatus] = useState<"idle"|"saved"|"error">("idle");
+const changeCount = isDirty ? 1 : 0;
+// ...
+<form key={resetKey} ref={formRef} onSubmit={e=>e.preventDefault()}
+  onChange={() => { setIsDirty(true); setSaveStatus("idle"); }} ...>
+
+{changeCount > 0 && <div className="h-20" />}
+<AdminSaveBar changeCount={changeCount} saveStatus={saveStatus}
+  isPending={isPending} onSave={handleSave} onDiscard={handleDiscard} />
+```
+
+**Create/new pages** keep the inline submit pattern: `<BiteButton size="lg">Create X</BiteButton>` + Cancel link in `flex gap-3` (no save bar — these navigate away after submit).
+
+**Per-row independent saves** (e.g. individual drop item pricing) stay as plain text-link submit buttons `text-primary hover:underline`. The save bar is for whole-section edits, not isolated field actions.
+
+### Server actions for edit pages
+
+Add a non-redirect version of every update action used by a save-bar page. Convention: `save*Action` (no redirect) alongside the original `update*Action` (which may redirect). In the non-redirect version:
+- Do the DB update
+- Call `revalidatePath` for affected paths
+- Return (no `redirect()`)
+- The client component calls `router.refresh()` after the action resolves
+
+### Drag-and-drop for sortable sequences
+
+Any list with a `sortOrder` field should support drag-and-drop reordering instead of manual number inputs. Pattern from `RecipeIngredientsClient.tsx` and `RecipeStepsClient.tsx`:
+
+- Add a `draggable` attribute to the row element.
+- Show a `⠿` drag handle with `cursor-grab text-on-surface-variant/30 select-none`.
+- Track `dragIdx = useRef<number|null>(null)` and `dragOverIdx` state.
+- On drop: splice the array, update all `sortOrder` values (`i * 10`), call the reorder server action in `startTransition`.
+- Highlight the drop target row with `bg-primary-fixed/40`.
+- Reorder server action accepts `(entityId, orderedIds[])` and batch-updates sort orders.
+
+```tsx
+draggable
+onDragStart={() => { dragIdx.current = idx; }}
+onDragOver={(e) => { e.preventDefault(); setDragOverIdx(idx); }}
+onDrop={(e) => {
+  e.preventDefault();
+  const from = dragIdx.current;
+  if (from === null || from === idx) { setDragOverIdx(null); return; }
+  const next = [...list];
+  const [removed] = next.splice(from, 1);
+  next.splice(idx, 0, removed);
+  setList(next);
+  dragIdx.current = null; setDragOverIdx(null);
+  startTransition(async () => { await reorderAction(entityId, next.map(r => r.id)); });
+}}
+onDragEnd={() => { setDragOverIdx(null); dragIdx.current = null; }}
+className={dragOverIdx === idx ? "bg-primary-fixed/40" : ""}
+```
+
+### Button alignment in forms
+
+| Context | Pattern |
+|---|---|
+| Edit page with save bar | `<AdminSaveBar>` — no inline submit |
+| Create/new page | `<div className="flex gap-3"><BiteButton size="lg">Create X</BiteButton><Link className="self-center font-label text-xs ...">Cancel</Link></div>` |
+| Per-row quick action | `<button type="submit" className="font-label text-xs uppercase tracking-[0.12em] text-primary hover:underline">Save</button>` |
+| Destructive action | `<ConfirmSubmit className="... text-on-error-container ...">Delete</ConfirmSubmit>` |
+
 ## Working checklist — before marking any task done
 
 1. `npm run build` passes with zero errors.

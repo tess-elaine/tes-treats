@@ -11,6 +11,60 @@ function s(v: FormDataEntryValue | null) {
   return String(v ?? "").trim();
 }
 
+/** Save box details without redirecting — used by CookieBoxEditClient save bar. */
+export async function saveBoxDetailsAction(formData: FormData) {
+  await requireAdmin();
+  const id = s(formData.get("id"));
+  if (!id) return;
+
+  await db
+    .update(cookieBoxes)
+    .set({
+      name: s(formData.get("name")),
+      tagline: s(formData.get("tagline")) || null,
+      description: s(formData.get("description")) || null,
+      notes: s(formData.get("notes")) || null,
+      isHidden: formData.get("isHidden") === "on",
+    })
+    .where(eq(cookieBoxes.id, id));
+
+  revalidatePath("/admin/cookie-boxes");
+  revalidatePath(`/admin/cookie-boxes/${id}`);
+}
+
+/** Reorder box items after drag-and-drop — called with IDs in new display order. */
+export async function reorderBoxItemsAction(cookieBoxId: string, orderedIds: string[]) {
+  await requireAdmin();
+  for (let i = 0; i < orderedIds.length; i++) {
+    await db
+      .update(cookieBoxItems)
+      .set({ sortOrder: i * 10 })
+      .where(eq(cookieBoxItems.id, orderedIds[i]));
+  }
+  revalidatePath(`/admin/cookie-boxes/${cookieBoxId}`);
+}
+
+/** Add a cookie to a box and return the created item's ID + sortOrder. */
+export async function addBoxItemReturnAction(cookieBoxId: string, productId: string) {
+  await requireAdmin();
+  const existing = await db.query.cookieBoxItems.findMany({
+    where: (t, { eq }) => eq(t.cookieBoxId, cookieBoxId),
+  });
+  const [created] = await db
+    .insert(cookieBoxItems)
+    .values({ cookieBoxId, productId, sortOrder: existing.length * 10 })
+    .returning({ id: cookieBoxItems.id, sortOrder: cookieBoxItems.sortOrder });
+  revalidatePath(`/admin/cookie-boxes/${cookieBoxId}`);
+  return created;
+}
+
+/** Remove a cookie from a box (direct args, no FormData). */
+export async function removeBoxItemAction(itemId: string, cookieBoxId: string) {
+  await requireAdmin();
+  await db.delete(cookieBoxItems).where(eq(cookieBoxItems.id, itemId));
+  revalidatePath(`/admin/cookie-boxes/${cookieBoxId}`);
+}
+
 export async function createBoxAction(formData: FormData) {
   await requireAdmin();
   const name = s(formData.get("name"));
