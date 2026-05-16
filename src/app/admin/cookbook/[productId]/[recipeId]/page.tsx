@@ -42,12 +42,21 @@ export default async function RecipeEditPage({
 
   return (
     <section>
-      <Link
-        href={`/admin/cookbook/${productId}`}
-        className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant hover:text-primary"
-      >
-        ← {product.name}
-      </Link>
+      <div className="flex items-center gap-3">
+        <Link
+          href={`/admin/cookbook/${productId}`}
+          className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant hover:text-primary"
+        >
+          ← {product.name}
+        </Link>
+        <span className="text-on-surface-variant/30">·</span>
+        <Link
+          href={`/admin/products/${productId}`}
+          className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant hover:text-primary"
+        >
+          Edit product ↗
+        </Link>
+      </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div>

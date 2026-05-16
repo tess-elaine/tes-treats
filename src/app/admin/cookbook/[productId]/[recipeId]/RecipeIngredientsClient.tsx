@@ -10,6 +10,7 @@ import {
   addRecipeIngredientAction,
   removeRecipeIngredientAction,
   reorderRecipeIngredientsAction,
+  updateRecipeIngredientAction,
   setDefaultRecipeAction,
 } from "../../actions";
 import { searchIngredientsAction } from "@/app/admin/ingredients/actions";
@@ -59,6 +60,13 @@ export function RecipeIngredientsClient({
   const [grams, setGrams] = useState("");
   const [ingNotes, setIngNotes] = useState("");
 
+  // Inline editing state
+  const [editingIngId, setEditingIngId] = useState<string | null>(null);
+  const [editQty, setEditQty] = useState("");
+  const [editUnit, setEditUnit] = useState("");
+  const [editGrams, setEditGrams] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+
   // Drag-and-drop
   const dragIdx = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
@@ -86,14 +94,55 @@ export function RecipeIngredientsClient({
     }
   }
 
+  function autoFillEditGrams(qtyStr: string, unitStr: string, ri: RecipeIngredient) {
+    const ing = ri.ingredient;
+    if (!ing.gramsPerUnit || !ing.defaultUnit) return;
+    const norm = (u: string) => u.toLowerCase().trim();
+    if (norm(unitStr) !== norm(ing.defaultUnit)) return;
+    if (norm(unitStr) === "g") return;
+    const qtyNum = parseFloat(qtyStr);
+    if (!isNaN(qtyNum)) {
+      setEditGrams(String(Math.round(qtyNum * parseFloat(ing.gramsPerUnit))));
+    }
+  }
+
   function resetAdd() {
     setSelected(null);
-    setQty("");
-    setUnit("");
-    setGrams("");
-    setIngNotes("");
-    setSearch("");
-    setResults([]);
+    setQty(""); setUnit(""); setGrams(""); setIngNotes("");
+    setSearch(""); setResults([]);
+  }
+
+  function startEdit(ri: RecipeIngredient) {
+    setEditingIngId(ri.id);
+    setEditQty(ri.batchQuantity);
+    setEditUnit(ri.unit);
+    setEditGrams(ri.batchQuantityGrams ?? "");
+    setEditNotes(ri.notes ?? "");
+  }
+
+  function cancelEdit() {
+    setEditingIngId(null);
+  }
+
+  function saveEdit(ri: RecipeIngredient) {
+    if (!editQty || !editUnit) return;
+    const payload = {
+      batchQuantity: editQty,
+      unit: editUnit,
+      batchQuantityGrams: editGrams || undefined,
+      notes: editNotes || undefined,
+    };
+    setList((l) =>
+      l.map((r) =>
+        r.id === ri.id
+          ? { ...r, batchQuantity: editQty, unit: editUnit, batchQuantityGrams: editGrams || null, notes: editNotes || null }
+          : r
+      )
+    );
+    setEditingIngId(null);
+    startTransition(async () => {
+      await updateRecipeIngredientAction(ri.id, recipeId, productId, payload);
+    });
   }
 
   const totalCostCents = calcTotalBatchCostCents(list);
@@ -114,19 +163,27 @@ export function RecipeIngredientsClient({
         <div className="mt-4">
           <div className="grid grid-cols-[1.5rem_1fr_auto_auto_1.5rem] gap-x-2 gap-y-0 mb-1 px-1">
             <span />
-            <span className="font-label text-[10px] uppercase tracking-wider text-on-surface-variant">Ingredient</span>
-            <span className="font-label text-[10px] uppercase tracking-wider text-on-surface-variant text-right">Batch qty</span>
-            <span className="font-label text-[10px] uppercase tracking-wider text-on-surface-variant text-right">Cost</span>
+            <span className="font-label text-[10px] uppercase tracking-wider text-on-surface-variant">
+              Ingredient
+            </span>
+            <span className="font-label text-[10px] uppercase tracking-wider text-on-surface-variant text-right">
+              Batch qty
+            </span>
+            <span className="font-label text-[10px] uppercase tracking-wider text-on-surface-variant text-right">
+              Cost
+            </span>
             <span />
           </div>
           <ul className="divide-y divide-outline-variant/30">
             {list.map((ri, idx) => {
               const cost = calcIngredientBatchCostCents(ri);
               const perCookie = cost != null ? cost / batchYield : null;
+              const isEditing = editingIngId === ri.id;
+
               return (
                 <li
                   key={ri.id}
-                  draggable
+                  draggable={!isEditing}
                   onDragStart={() => { dragIdx.current = idx; }}
                   onDragOver={(e) => { e.preventDefault(); setDragOverIdx(idx); }}
                   onDrop={(e) => {
@@ -145,48 +202,171 @@ export function RecipeIngredientsClient({
                   }}
                   onDragEnd={() => { setDragOverIdx(null); dragIdx.current = null; }}
                   className={[
-                    "grid grid-cols-[1.5rem_1fr_auto_auto_1.5rem] items-center gap-x-2 py-2 transition-colors",
-                    dragOverIdx === idx ? "bg-primary-fixed/40" : "",
+                    "grid grid-cols-[1.5rem_1fr_auto_auto_1.5rem] items-start gap-x-2 py-2 transition-colors",
+                    dragOverIdx === idx && !isEditing ? "bg-primary-fixed/40" : "",
                   ].filter(Boolean).join(" ")}
                 >
-                  <span className="select-none cursor-grab text-on-surface-variant/30 text-lg leading-none">⠿</span>
-                  <div className="min-w-0">
-                    <span className="block font-medium text-on-surface truncate">{ri.ingredient.name}</span>
-                    {ri.notes && (
-                      <span className="block text-xs text-on-surface-variant/60 italic">{ri.notes}</span>
-                    )}
-                  </div>
-                  <div className="text-right text-sm text-on-surface-variant whitespace-nowrap">
-                    <span>
-                      {ri.unit === "g"
-                        ? ri.batchQuantity
-                        : toFraction(parseFloat(ri.batchQuantity))}{" "}
-                      {ri.unit}
-                    </span>
-                    {ri.batchQuantityGrams && (
-                      <span className="ml-1 text-xs text-on-surface-variant/50">({ri.batchQuantityGrams}g)</span>
-                    )}
-                    {perCookie != null && (
-                      <span className="ml-1 text-xs text-on-surface-variant/50">
-                        = {(perCookie / 100).toFixed(4)}/cookie
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-right text-sm font-medium text-on-surface whitespace-nowrap">
-                    {cost != null ? formatCents(cost) : <span className="text-on-surface-variant/40">—</span>}
-                  </div>
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => startTransition(async () => {
-                      await removeRecipeIngredientAction(ri.id, recipeId, productId);
-                      setList((l) => l.filter((x) => x.id !== ri.id));
-                    })}
-                    className="text-on-surface-variant/30 hover:text-on-error-container transition-colors disabled:opacity-40"
-                    aria-label="Remove"
+                  {/* Drag handle */}
+                  <span
+                    className={[
+                      "mt-1 select-none text-sm text-on-surface-variant/30",
+                      !isEditing ? "cursor-grab" : "cursor-default opacity-0",
+                    ].join(" ")}
                   >
-                    <TrashIcon />
-                  </button>
+                    ⠿
+                  </span>
+
+                  {/* Name + edit form */}
+                  <div className="min-w-0">
+                    <span className="block font-medium text-on-surface truncate">
+                      {ri.ingredient.name}
+                    </span>
+
+                    {isEditing ? (
+                      <div className="mt-2 space-y-2">
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                          <div>
+                            <label className="block text-xs text-on-surface-variant mb-1">
+                              Qty *
+                            </label>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              autoFocus
+                              value={editQty}
+                              onChange={(e) => {
+                                setEditQty(e.target.value);
+                                autoFillEditGrams(e.target.value, editUnit, ri);
+                              }}
+                              className="ghost-border w-full rounded-md bg-surface-container-high px-2 py-1.5 text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-on-surface-variant mb-1">
+                              Unit *
+                            </label>
+                            <input
+                              type="text"
+                              value={editUnit}
+                              onChange={(e) => {
+                                setEditUnit(e.target.value);
+                                autoFillEditGrams(editQty, e.target.value, ri);
+                              }}
+                              className="ghost-border w-full rounded-md bg-surface-container-high px-2 py-1.5 text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-on-surface-variant mb-1">
+                              Grams{" "}
+                              <span className="opacity-50">(opt)</span>
+                            </label>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              value={editGrams}
+                              onChange={(e) => setEditGrams(e.target.value)}
+                              className="ghost-border w-full rounded-md bg-surface-container-high px-2 py-1.5 text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-on-surface-variant mb-1">
+                              Note{" "}
+                              <span className="opacity-50">(opt)</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={editNotes}
+                              onChange={(e) => setEditNotes(e.target.value)}
+                              className="ghost-border w-full rounded-md bg-surface-container-high px-2 py-1.5 text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <BiteButton
+                            type="button"
+                            size="md"
+                            disabled={isPending || !editQty || !editUnit}
+                            biteColor="var(--color-surface-container-lowest)"
+                            onClick={() => saveEdit(ri)}
+                          >
+                            {isPending ? "Saving…" : "Save"}
+                          </BiteButton>
+                          <BiteButton
+                            type="button"
+                            size="md"
+                            variant="ghost"
+                            onClick={cancelEdit}
+                          >
+                            Cancel
+                          </BiteButton>
+                        </div>
+                      </div>
+                    ) : (
+                      ri.notes && (
+                        <span className="block text-xs text-on-surface-variant/60 italic">
+                          {ri.notes}
+                        </span>
+                      )
+                    )}
+                  </div>
+
+                  {/* Qty display — click to edit */}
+                  {!isEditing && (
+                    <div
+                      className="text-right text-sm text-on-surface-variant whitespace-nowrap cursor-pointer hover:text-primary mt-0.5"
+                      title="Click to edit"
+                      onClick={() => startEdit(ri)}
+                    >
+                      <span>
+                        {ri.unit === "g"
+                          ? ri.batchQuantity
+                          : toFraction(parseFloat(ri.batchQuantity))}{" "}
+                        {ri.unit}
+                      </span>
+                      {ri.batchQuantityGrams && (
+                        <span className="ml-1 text-xs text-on-surface-variant/50">
+                          ({ri.batchQuantityGrams}g)
+                        </span>
+                      )}
+                      {perCookie != null && (
+                        <span className="ml-1 text-xs text-on-surface-variant/50">
+                          = {(perCookie / 100).toFixed(4)}/cookie
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {isEditing && <div />}
+
+                  {/* Cost */}
+                  <div className="text-right text-sm font-medium text-on-surface whitespace-nowrap mt-0.5">
+                    {cost != null ? (
+                      formatCents(cost)
+                    ) : (
+                      <span className="text-on-surface-variant/40">—</span>
+                    )}
+                  </div>
+
+                  {/* Trash */}
+                  <div className="mt-0.5">
+                    {!isEditing && (
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() =>
+                          startTransition(async () => {
+                            await removeRecipeIngredientAction(ri.id, recipeId, productId);
+                            setList((l) => l.filter((x) => x.id !== ri.id));
+                          })
+                        }
+                        className="text-on-surface-variant/30 hover:text-on-error-container transition-colors disabled:opacity-40"
+                        aria-label="Remove"
+                      >
+                        <TrashIcon />
+                      </button>
+                    )}
+                  </div>
                 </li>
               );
             })}
@@ -197,25 +377,41 @@ export function RecipeIngredientsClient({
             <div className="flex justify-between text-sm">
               <span className="text-on-surface-variant">Total batch cost</span>
               <span className="font-semibold text-on-surface">
-                {totalCostCents != null ? formatCents(totalCostCents) : <span className="text-on-surface-variant/40">—</span>}
+                {totalCostCents != null ? (
+                  formatCents(totalCostCents)
+                ) : (
+                  <span className="text-on-surface-variant/40">—</span>
+                )}
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-on-surface-variant">Cost per cookie</span>
               <span className="font-semibold text-on-surface">
-                {costPerCookieCents != null ? formatCents(Math.round(costPerCookieCents)) : <span className="text-on-surface-variant/40">—</span>}
+                {costPerCookieCents != null ? (
+                  formatCents(Math.round(costPerCookieCents))
+                ) : (
+                  <span className="text-on-surface-variant/40">—</span>
+                )}
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-on-surface-variant font-medium">Cost per dozen</span>
               <span className="font-bold text-primary">
-                {costPerDozenCents != null ? formatCents(costPerDozenCents) : <span className="text-on-surface-variant/40">—</span>}
+                {costPerDozenCents != null ? (
+                  formatCents(costPerDozenCents)
+                ) : (
+                  <span className="text-on-surface-variant/40">—</span>
+                )}
               </span>
             </div>
             {totalCostCents == null && list.some((ri) => calcIngredientBatchCostCents(ri) == null) && (
               <p className="text-xs text-on-surface-variant/50 italic">
-                Some ingredients are missing purchase cost — add cost info in the{" "}
-                <a href="/admin/ingredients" className="underline hover:text-primary">ingredient library</a>.
+                Some ingredients can&rsquo;t be costed — check that purchase cost, quantity, and
+                unit are filled in on the{" "}
+                <a href="/admin/ingredients" className="underline hover:text-primary">
+                  ingredient
+                </a>
+                . Unit must match or be convertible (e.g. tsp → fl oz, cup → lb via grams/unit).
               </p>
             )}
           </div>
@@ -251,7 +447,10 @@ export function RecipeIngredientsClient({
                   min="0"
                   placeholder="2"
                   value={qty}
-                  onChange={(e) => { setQty(e.target.value); autoFillGrams(e.target.value, unit, selected); }}
+                  onChange={(e) => {
+                    setQty(e.target.value);
+                    autoFillGrams(e.target.value, unit, selected);
+                  }}
                   className="ghost-border w-full rounded-md bg-surface-container-high px-2 py-1.5 text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
                 />
               </div>
@@ -261,14 +460,19 @@ export function RecipeIngredientsClient({
                   type="text"
                   placeholder="cup"
                   value={unit}
-                  onChange={(e) => { setUnit(e.target.value); autoFillGrams(qty, e.target.value, selected); }}
+                  onChange={(e) => {
+                    setUnit(e.target.value);
+                    autoFillGrams(qty, e.target.value, selected);
+                  }}
                   className="ghost-border w-full rounded-md bg-surface-container-high px-2 py-1.5 text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
                 />
               </div>
               <div>
                 <label className="block text-xs text-on-surface-variant mb-1">
                   Grams
-                  {selected?.gramsPerUnit && unit.toLowerCase().trim() === selected.defaultUnit.toLowerCase().trim() && unit.toLowerCase().trim() !== "g" ? (
+                  {selected?.gramsPerUnit &&
+                  unit.toLowerCase().trim() === selected.defaultUnit.toLowerCase().trim() &&
+                  unit.toLowerCase().trim() !== "g" ? (
                     <span className="ml-1 text-primary/60">(auto)</span>
                   ) : (
                     <span className="opacity-50"> (opt)</span>
@@ -298,7 +502,8 @@ export function RecipeIngredientsClient({
               </div>
             </div>
             <p className="text-xs text-on-surface-variant/60">
-              Enter grams if the ingredient is priced by weight (g) but measured in another unit — used for accurate cost calculation.
+              Enter grams if the ingredient is priced by weight (g) but measured in another
+              unit — used for accurate cost calculation.
             </p>
             <div className="flex gap-2">
               <BiteButton
@@ -306,39 +511,44 @@ export function RecipeIngredientsClient({
                 size="md"
                 disabled={isPending || !qty || !unit}
                 biteColor="var(--color-surface-container-lowest)"
-                onClick={() => startTransition(async () => {
-                  if (!selected || !qty || !unit) return;
-                  const row = await addRecipeIngredientAction({
-                    recipeId,
-                    productId,
-                    ingredientId: selected.id,
-                    batchQuantity: qty,
-                    unit,
-                    batchQuantityGrams: grams || undefined,
-                    notes: ingNotes || undefined,
-                    sortOrder: list.length * 10,
-                  });
-                  if (row) {
-                    setList((l) => [...l, {
-                      id: row.id,
-                      batchQuantity: row.batchQuantity,
-                      unit: row.unit,
-                      batchQuantityGrams: row.batchQuantityGrams ?? null,
-                      notes: row.notes ?? null,
-                      sortOrder: row.sortOrder,
-                      ingredient: {
-                        id: row.ingredient.id,
-                        name: row.ingredient.name,
-                        defaultUnit: row.ingredient.defaultUnit,
-                        purchaseCostCents: row.ingredient.purchaseCostCents,
-                        purchaseQuantity: row.ingredient.purchaseQuantity,
-                        purchaseUnit: row.ingredient.purchaseUnit,
-                        gramsPerUnit: row.ingredient.gramsPerUnit ?? null,
-                      },
-                    }]);
-                  }
-                  resetAdd();
-                })}
+                onClick={() =>
+                  startTransition(async () => {
+                    if (!selected || !qty || !unit) return;
+                    const row = await addRecipeIngredientAction({
+                      recipeId,
+                      productId,
+                      ingredientId: selected.id,
+                      batchQuantity: qty,
+                      unit,
+                      batchQuantityGrams: grams || undefined,
+                      notes: ingNotes || undefined,
+                      sortOrder: list.length * 10,
+                    });
+                    if (row) {
+                      setList((l) => [
+                        ...l,
+                        {
+                          id: row.id,
+                          batchQuantity: row.batchQuantity,
+                          unit: row.unit,
+                          batchQuantityGrams: row.batchQuantityGrams ?? null,
+                          notes: row.notes ?? null,
+                          sortOrder: row.sortOrder,
+                          ingredient: {
+                            id: row.ingredient.id,
+                            name: row.ingredient.name,
+                            defaultUnit: row.ingredient.defaultUnit,
+                            purchaseCostCents: row.ingredient.purchaseCostCents,
+                            purchaseQuantity: row.ingredient.purchaseQuantity,
+                            purchaseUnit: row.ingredient.purchaseUnit,
+                            gramsPerUnit: row.ingredient.gramsPerUnit ?? null,
+                          },
+                        },
+                      ]);
+                    }
+                    resetAdd();
+                  })
+                }
               >
                 {isPending ? "Adding…" : "Add"}
               </BiteButton>
@@ -353,7 +563,10 @@ export function RecipeIngredientsClient({
               type="text"
               placeholder="Search ingredients…"
               value={search}
-              onChange={(e) => { setSearch(e.target.value); doSearch(e.target.value); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                doSearch(e.target.value);
+              }}
               className="ghost-border w-full rounded-md bg-surface-container-high px-3 py-2 text-sm text-on-surface focus:bg-primary-fixed focus:outline-none"
             />
             {results.length > 0 && (
@@ -367,7 +580,6 @@ export function RecipeIngredientsClient({
                         setUnit(r.defaultUnit);
                         setSearch("");
                         setResults([]);
-                        // Auto-fill grams if qty already entered and unit is cups
                         if (qty) autoFillGrams(qty, r.defaultUnit, r);
                       }}
                       className="w-full px-3 py-2 text-left text-sm text-on-surface hover:bg-surface-container-low"
@@ -395,15 +607,18 @@ export function RecipeIngredientsClient({
           <button
             type="button"
             disabled={isPending}
-            onClick={() => startTransition(async () => {
-              await setDefaultRecipeAction(recipeId, productId);
-            })}
+            onClick={() =>
+              startTransition(async () => {
+                await setDefaultRecipeAction(recipeId, productId);
+              })
+            }
             className="font-label text-xs uppercase tracking-[0.12em] text-primary hover:underline disabled:opacity-40"
           >
             Set as default recipe
           </button>
           <p className="mt-1 text-xs text-on-surface-variant/60">
-            The default recipe&apos;s per-cookie quantities are used for allergen display on the public site.
+            The default recipe&apos;s per-cookie quantities are used for allergen display on the
+            public site.
           </p>
         </div>
       )}

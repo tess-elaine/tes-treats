@@ -47,9 +47,17 @@ export default async function ProductCookbookPage({
           <p className="font-label uppercase tracking-[0.2em] text-on-secondary-container">
             Cookbook
           </p>
-          <h1 className="mt-1 font-headline text-3xl font-extrabold text-primary">
-            {product.name}
-          </h1>
+          <div className="mt-1 flex items-baseline gap-3">
+            <h1 className="font-headline text-3xl font-extrabold text-primary">
+              {product.name}
+            </h1>
+            <Link
+              href={`/admin/products/${productId}`}
+              className="font-label text-xs uppercase tracking-[0.12em] text-on-surface-variant hover:text-primary"
+            >
+              Edit product ↗
+            </Link>
+          </div>
         </div>
         <BiteButton
           href={`/admin/cookbook/${productId}/new`}
